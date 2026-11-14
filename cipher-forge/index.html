@@ -253,7 +253,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);display
     <div>
       <div class="tagline">03 / protector</div>
       <h2>输入 JS，输出混淆 HTML</h2>
-      <p>粘贴任意前端代码，生成一个自带 WASM VM + 双向锁 + 运行时自解密的可运行页面。</p>
+      <p>粘贴 script 标签内的业务 JS（不要整份 HTML 文档），生成一个自带 WASM VM + 双向锁 + 运行时自解密的可运行页面。</p>
     </div>
   </div>
   <section class="card tool">
@@ -878,7 +878,7 @@ var GEN_RUNTIME = [
 "    p(OP.HALT);return Uint8Array.from(P);}",
 "  function log(m,cls){var el=document.getElementById('log');if(!el)return;var s=document.createElement('span');s.textContent=m+'\\n';if(cls)s.style.color='#ffb4b4';el.appendChild(s);el.scrollTop=el.scrollHeight;}",
 "  function stage(m){var el=document.getElementById('stage');if(el)el.textContent=m;}",
-"  function decoy(){stage('环境校验失败 · shadow 通道');log('handshake rejected, running decoy chain',1);try{var f=document.createElement('div');f.textContent='DECOY // no real logic executed';f.style.cssText='margin-top:14px;padding:12px;border-radius:10px;background:#fff5f5;border:1px solid #ffd9d9;color:#a33;font:600 12px ui-monospace,monospace';document.getElementById('app').appendChild(f);}catch(e){}}",
+"  function decoy(why,label){stage(label||'环境校验失败 · shadow 通道');log((why||'handshake rejected')+', running decoy chain',1);try{var f=document.createElement('div');f.textContent='DECOY // no real logic executed';f.style.cssText='margin-top:14px;padding:12px;border-radius:10px;background:#fff5f5;border:1px solid #ffd9d9;color:#a33;font:600 12px ui-monospace,monospace';document.getElementById('app').appendChild(f);}catch(e){}}",
 "  var _log=console.log.bind(console);",
 "  console.log=function(){try{log(Array.prototype.slice.call(arguments).join(' '));}catch(e){}_log.apply(console,arguments);};",
 "  function start(){",
@@ -897,14 +897,15 @@ var GEN_RUNTIME = [
 "        var n=vm.run(1024,enc.length,key,env,60000);",
 "        var got=n>0?Array.prototype.slice.call(mem.slice(60000,60000+n)):[];",
 "        var exp=tok(key),diff=0;for(var j=0;j<4;j++)diff|=(got[j]^exp[j])|0;",
-"        if(diff!==0){decoy();return;}",
+"        if(diff!==0){decoy('token mismatch');return;}",
 "        var raw=crypt(b64d(D.cipher),key);",
 "        var src=new TextDecoder().decode(raw);raw.fill(0);",
 "        stage('handshake ok · token '+exp.map(function(b){return ('0'+b.toString(16)).slice(-2);}).join(' ')+' · decrypting payload');",
-"        log('bytecode wiped · payload instantiated');",
-"        (new Function(src))();",
-"      }).catch(function(e){decoy();});",
-"    }catch(e){decoy();}",
+"        log('bytecode wiped · payload decrypted');",
+"        try{(new Function(src))();}catch(e){decoy('payload error: '+(e&&e.message?e.message:e),'载荷实例化失败 · shadow 通道');return;}",
+"        log('payload instantiated');",
+"      }).catch(function(e){decoy('vm error: '+(e&&e.message?e.message:e));});",
+"    }catch(e){decoy('env error: '+(e&&e.message?e.message:e));}",
 "  }",
 "  window.__CF_UNLOCK=start;",
 "  if(!D.manual) start();",
@@ -944,6 +945,12 @@ function updateCounts(){
 function generate(mode){
   var code = $('#codeInput').value;
   if(!code.trim()){ toast('请输入代码'); return; }
+  if(/^\s*<(!doctype|html|\?xml)/i.test(code)){
+    toast('这是整份 HTML 文档：请只粘贴 script 标签内的 JS');
+    $('#genStatus').textContent = 'html rejected';
+    logLine('err','输入为整页 HTML，已中止生成（工具只保护 JS 逻辑）','err');
+    return;
+  }
   if(mode === 'jsfuck' && code.length > 900){ toast('JSFuck 模式建议 ≤ 900 字符'); return; }
   var t = performance.now();
   try{
