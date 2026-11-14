@@ -971,8 +971,9 @@ var HTML_RUNTIME = [
 
 function protectHTML(html){
   var scripts = [];
+  var firstOffset = -1;
   var re = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
-  var out = html.replace(re, function(m, attrs, body){
+  var out = html.replace(re, function(m, attrs, body, offset){
     if(/\bsrc\s*=/i.test(attrs)) return m;
     var tm = /\btype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(attrs);
     if(tm){
@@ -982,6 +983,7 @@ function protectHTML(html){
     if(!body.trim()) return m;
     var i = scripts.length;
     scripts.push(body);
+    if(firstOffset < 0) firstOffset = offset;
     return '<script' + attrs + '>__CFX(' + i + ')<\/script>';
   });
   if(!scripts.length) return null;
@@ -999,9 +1001,7 @@ function protectHTML(html){
   var dataJS = 'window.__CFX_DATA__=' + JSON.stringify(data).replace(/</g,'\\u003c') + ';';
   var inject = '<script>' + dataJS + '<\/script>\n<script>' + HTML_RUNTIME + '<\/script>\n';
 
-  var hm = /<head\b[^>]*>/i.exec(out);
-  if(hm) out = out.slice(0, hm.index + hm[0].length) + '\n' + inject + out.slice(hm.index + hm[0].length);
-  else out = inject + out;
+  out = out.slice(0, firstOffset) + inject + out.slice(firstOffset);
   return out;
 }
 
