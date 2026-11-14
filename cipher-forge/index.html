@@ -253,7 +253,7 @@ footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);display
     <div>
       <div class="tagline">03 / protector</div>
       <h2>输入 JS，输出混淆 HTML</h2>
-      <p>粘贴 script 标签内的业务 JS（不要整份 HTML 文档），生成一个自带 WASM VM + 双向锁 + 运行时自解密的可运行页面。</p>
+      <p>粘贴 JS，或整份 HTML 文档：前者生成保护页，后者保持结构不变、只替换内联 script 的内容。</p>
     </div>
   </div>
   <section class="card tool">
@@ -280,8 +280,8 @@ console.log('business payload executed after handshake');</textarea>
       <span class="status" id="genStatus">ready</span>
     </div>
     <p class="hint">
-      JSFuck 模式只包裹引导器（bootstrap），加密载荷与 WASM 字节码仍以数据形式存在——这是体积上唯一可行的分层方式。
-      输入长度建议 ≤ 900 字符，JSFuck 输出体积约为输入的 4–6 千倍。
+      整页 HTML 模式下：标题、样式、结构、属性一律原样保留，只有内联 script 的正文被替换为加密切片，页面解析到该位置时同步解密执行；外链 script 与 type=module 保持不变。
+      JSFuck 模式只包裹引导器（bootstrap），且仅适用于 JS 输入；输出体积约为输入的 4–6 千倍。
     </p>
   </section>
 
@@ -912,6 +912,99 @@ var GEN_RUNTIME = [
 "})();"
 ].join('\n');
 
+/* 整页 HTML 模式：结构原样保留，仅把内联 script 的正文换成 __CFX(n) 存根，
+   n 号载荷在页面解析到该位置时同步解密并执行（保持原有执行顺序）。 */
+var HTML_RUNTIME = [
+"(function(){",
+"  'use strict';",
+"  var D=window.__CFX_DATA__;",
+"  function fnv(s){var h=0x811c9dc5>>>0;for(var i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619)>>>0;return h>>>0;}",
+"  function fnvB(u8){var h=0x811c9dc5>>>0;for(var i=0;i<u8.length;i++)h=Math.imul(h^u8[i],16777619)>>>0;return h>>>0;}",
+"  function mb(a){a>>>=0;return function(){a=(a+0x6D2B79F5)|0;var t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}",
+"  function tabs(seed){var r=mb(seed^0x9e3779b9);function mk(){var t=new Uint32Array(256);for(var i=0;i<256;i++)t[i]=(r()*4294967296)>>>0;return t;}return[mk(),mk(),mk(),mk()];}",
+"  function wb(T,s){return (T[0][s&255]^T[1][(s>>>8)&255]^T[2][(s>>>16)&255]^T[3][(s>>>24)&255])>>>0;}",
+"  function envOf(k){return ((Math.imul(k,2654435761)^0x9e3779b9)>>>0);}",
+"  function crypt(u8,k){var o=u8.slice();var st=(k>>>0)||0x9e3779b9;for(var i=0;i<o.length;i++){st=(st^(st<<13))|0;st=(st^(st>>>17))|0;st=(st^(st<<5))|0;o[i]^=(st&255);}return o;}",
+"  function tok(k){var x=k>>>0;x=(x^(x<<13))>>>0;x=(x^(x>>>17))>>>0;x=(x^(x<<5))>>>0;return[x&255,(x>>>8)&255,(x>>>16)&255,(x>>>24)&255];}",
+"  function b64d(s){return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0);});}",
+"  var OP={PUSH:1,ADD:3,SHL:7,SHR:8,XOR:5,OUT:13,HALT:15};",
+"  function asm(seed){var P=[];function p(op,a,b,c){P.push(op&255,(a||0)&255,(b||0)&255,(c||0)&255);}",
+"    p(OP.PUSH,0,(seed>>>24)&255,(seed>>>16)&255);p(OP.PUSH,2,0,16);p(OP.SHL,0,0,2);",
+"    p(OP.PUSH,1,(seed>>>8)&255,seed&255);p(OP.ADD,0,0,1);",
+"    p(OP.PUSH,1,0,13);p(OP.SHL,2,0,1);p(OP.XOR,0,0,2);",
+"    p(OP.PUSH,1,0,17);p(OP.SHR,2,0,1);p(OP.XOR,0,0,2);",
+"    p(OP.PUSH,1,0,5);p(OP.SHL,2,0,1);p(OP.XOR,0,0,2);",
+"    for(var i=0;i<4;i++){p(OP.OUT,0);if(i<3){p(OP.PUSH,1,0,8);p(OP.SHR,0,0,1);}}",
+"    p(OP.HALT);return Uint8Array.from(P);}",
+"  var key=0,ready=false,err='',q=[];",
+"  function setup(vm){",
+"    var seed=fnv(D.names+'|'+D.salt);",
+"    var T=tabs(seed),k=wb(T,seed),env=envOf(k);",
+"    vm.init(seed);",
+"    var mem=new Uint8Array(vm.mem.buffer);",
+"    var perm=Array.prototype.slice.call(mem.slice(512,528));",
+"    var prog=asm(k);for(var i=0;i<prog.length;i+=4)prog[i]=perm.indexOf(prog[i]);",
+"    var packed=new Uint8Array(prog.length+4);packed.set(prog,0);",
+"    var sum=fnvB(prog);packed[prog.length]=(sum>>>24)&255;packed[prog.length+1]=(sum>>>16)&255;packed[prog.length+2]=(sum>>>8)&255;packed[prog.length+3]=sum&255;",
+"    var enc=crypt(packed,k);mem.set(enc,1024);",
+"    var n=vm.run(1024,enc.length,k,env,60000);",
+"    var got=n>0?Array.prototype.slice.call(mem.slice(60000,60000+n)):[];",
+"    var exp=tok(k),diff=0;for(var j=0;j<4;j++)diff|=(got[j]^exp[j])|0;",
+"    if(diff!==0)throw new Error('token mismatch');",
+"    key=k;ready=true;",
+"  }",
+"  function run(i){",
+"    if(!ready){console.warn('[cipher-forge] handshake failed: '+err);return;}",
+"    try{",
+"      var raw=crypt(b64d(D.p[i]),((key^Math.imul(i+1,0x9e3779b9))>>>0));",
+"      var src=new TextDecoder().decode(raw);raw.fill(0);",
+"      (0,eval)(src);",
+"    }catch(e){console.error('[cipher-forge] payload '+i+': '+(e&&e.message?e.message:e));}",
+"  }",
+"  function flush(){var a=q;q=[];for(var j=0;j<a.length;j++)run(a[j]);}",
+"  function boot(inst){try{setup(inst);}catch(e){err=(e&&e.message)||String(e);}flush();}",
+"  window.__CFX=function(i){if(ready)run(i);else q.push(i);};",
+"  try{boot(new WebAssembly.Instance(new WebAssembly.Module(b64d(D.w)),{}).exports);}",
+"  catch(e){WebAssembly.instantiate(b64d(D.w),{}).then(function(m){boot(m.instance.exports);},function(x){err=(x&&x.message)||String(x);flush();});}",
+"})();"
+].join('\n');
+
+function protectHTML(html){
+  var scripts = [];
+  var re = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+  var out = html.replace(re, function(m, attrs, body){
+    if(/\bsrc\s*=/i.test(attrs)) return m;
+    var tm = /\btype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(attrs);
+    if(tm){
+      var t = (tm[1]||tm[2]||tm[3]||'').toLowerCase();
+      if(t !== 'text/javascript' && t !== 'application/javascript' && t !== 'text/ecmascript' && t !== 'application/ecmascript') return m;
+    }
+    if(!body.trim()) return m;
+    var i = scripts.length;
+    scripts.push(body);
+    return '<script' + attrs + '>__CFX(' + i + ')<\/script>';
+  });
+  if(!scripts.length) return null;
+
+  var salt = makeSalt();
+  var names = S.names.slice(0, 80).join('|');
+  var seed = fnv(names + '|' + salt);
+  var T = buildTables(seed);
+  var key = whiteboxKey(T, seed);
+  var p = scripts.map(function(src, i){
+    return b64e(crypt(utf8e(src), (key ^ Math.imul(i + 1, 0x9e3779b9)) >>> 0));
+  });
+
+  var data = { w:WASM_B64, salt:salt, names:names, p:p };
+  var dataJS = 'window.__CFX_DATA__=' + JSON.stringify(data).replace(/</g,'\\u003c') + ';';
+  var inject = '<script>' + dataJS + '<\/script>\n<script>' + HTML_RUNTIME + '<\/script>\n';
+
+  var hm = /<head\b[^>]*>/i.exec(out);
+  if(hm) out = out.slice(0, hm.index + hm[0].length) + '\n' + inject + out.slice(hm.index + hm[0].length);
+  else out = inject + out;
+  return out;
+}
+
 function buildHTML(userCode, mode){
   mode = mode || 'protect';
   var salt = makeSalt();
@@ -945,10 +1038,25 @@ function updateCounts(){
 function generate(mode){
   var code = $('#codeInput').value;
   if(!code.trim()){ toast('请输入代码'); return; }
-  if(/^\s*<(!doctype|html|\?xml)/i.test(code)){
-    toast('这是整份 HTML 文档：请只粘贴 script 标签内的 JS');
-    $('#genStatus').textContent = 'html rejected';
-    logLine('err','输入为整页 HTML，已中止生成（工具只保护 JS 逻辑）','err');
+  var looksHTML = /^\s*</.test(code);
+  if(looksHTML){
+    if(!/<script[\s>]/i.test(code)){ toast('这段 HTML 里没有内联 script，无需保护'); $('#genStatus').textContent = 'no inline script'; return; }
+    var t0 = performance.now();
+    try{
+      var page = protectHTML(code);
+      if(!page){ toast('未找到可保护的内联 script'); $('#genStatus').textContent = 'no inline script'; return; }
+      lastHTML = page; lastMode = 'html';
+      $('#codeOutput').value = page;
+      var hkb = (page.length/1024).toFixed(1);
+      $('#outMeta').textContent = hkb + ' KB · protected html';
+      $('#genStatus').textContent = 'built in ' + (performance.now()-t0).toFixed(0) + 'ms';
+      logLine('build', '整页 HTML 已保护 · 结构原样 · 内联 script 已加密 · ' + hkb + ' KB');
+      toast(mode === 'jsfuck' ? 'HTML 模式不支持 JSFuck 外层，已按自保护输出' : 'HTML 结构未改，仅 script 被保护');
+    }catch(e){
+      $('#genStatus').textContent = 'error';
+      toast(e.message || '生成失败');
+      logLine('err', String(e.message || e), 'err');
+    }
     return;
   }
   if(mode === 'jsfuck' && code.length > 900){ toast('JSFuck 模式建议 ≤ 900 字符'); return; }
