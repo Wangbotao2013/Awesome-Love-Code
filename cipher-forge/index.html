@@ -915,11 +915,12 @@ var GEN_RUNTIME = [
 /* 整页 HTML 模式：结构原样保留，仅把内联 script 的正文换成 __CFX(n) 存根，
    n 号载荷在页面解析到该位置时同步解密并执行（保持原有执行顺序）。 */
 var HTML_RUNTIME = [
-"(function(){",
+"(function(D){",
 "  'use strict';",
-"  var D=window.__CFX_DATA__;",
-"  function fnv(s){var h=0x811c9dc5>>>0;for(var i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619)>>>0;return h>>>0;}",
 "  function fnvB(u8){var h=0x811c9dc5>>>0;for(var i=0;i<u8.length;i++)h=Math.imul(h^u8[i],16777619)>>>0;return h>>>0;}",
+"  function fnvSh(a){var h=0x811c9dc5>>>0;for(var i=0;i<a.length;i++){var v=a[i]>>>0;for(var j=0;j<4;j++){h=Math.imul(h^((v>>>(j*8))&255),16777619)>>>0;}}return h>>>0;}",
+"  function nat(f){try{return /\\{\\s*\\[native code\\]\\s*\\}/.test(Function.prototype.toString.call(f));}catch(e){return false;}}",
+"  function guarded(){return nat(Function.prototype.toString)&&nat(atob)&&nat(TextDecoder)&&nat(TextDecoder.prototype.decode)&&nat(Math.imul)&&nat(WebAssembly.Module)&&nat(WebAssembly.instantiate);}",
 "  function mb(a){a>>>=0;return function(){a=(a+0x6D2B79F5)|0;var t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}",
 "  function tabs(seed){var r=mb(seed^0x9e3779b9);function mk(){var t=new Uint32Array(256);for(var i=0;i<256;i++)t[i]=(r()*4294967296)>>>0;return t;}return[mk(),mk(),mk(),mk()];}",
 "  function wb(T,s){return (T[0][s&255]^T[1][(s>>>8)&255]^T[2][(s>>>16)&255]^T[3][(s>>>24)&255])>>>0;}",
@@ -938,7 +939,7 @@ var HTML_RUNTIME = [
 "    p(OP.HALT);return Uint8Array.from(P);}",
 "  var key=0,ready=false,err='',q=[];",
 "  function setup(vm){",
-"    var seed=fnv(D.names+'|'+D.salt);",
+"    var seed=fnvSh(D.s);",
 "    var T=tabs(seed),k=wb(T,seed),env=envOf(k);",
 "    vm.init(seed);",
 "    var mem=new Uint8Array(vm.mem.buffer);",
@@ -956,18 +957,36 @@ var HTML_RUNTIME = [
 "  function run(i){",
 "    if(!ready){console.warn('[cipher-forge] handshake failed: '+err);return;}",
 "    try{",
-"      var raw=crypt(b64d(D.p[i]),((key^Math.imul(i+1,0x9e3779b9))>>>0));",
+"      var blob=b64d(D.p[i]);",
+"      var raw=crypt(blob.slice(8),((key^fnvB(blob.slice(0,8)))>>>0));",
 "      var src=new TextDecoder().decode(raw);raw.fill(0);",
-"      (0,eval)(src);",
+"      var el=document.createElement('script');el.textContent=src;",
+"      (document.head||document.documentElement).appendChild(el);",
+"      if(el.parentNode)el.parentNode.removeChild(el);",
+"      src=null;el=null;",
 "    }catch(e){console.error('[cipher-forge] payload '+i+': '+(e&&e.message?e.message:e));}",
 "  }",
 "  function flush(){var a=q;q=[];for(var j=0;j<a.length;j++)run(a[j]);}",
-"  function boot(inst){try{setup(inst);}catch(e){err=(e&&e.message)||String(e);}flush();}",
+"  function boot(inst){if(!guarded()){err='hooked runtime';flush();return;}try{setup(inst);}catch(e){err=(e&&e.message)||String(e);}flush();}",
 "  window.__CFX=function(i){if(ready)run(i);else q.push(i);};",
 "  try{boot(new WebAssembly.Instance(new WebAssembly.Module(b64d(D.w)),{}).exports);}",
 "  catch(e){WebAssembly.instantiate(b64d(D.w),{}).then(function(m){boot(m.instance.exports);},function(x){err=(x&&x.message)||String(x);flush();});}",
-"})();"
+"})"
 ].join('\n');
+
+function fnvShares(sh){
+  var h = 0x811c9dc5 >>> 0;
+  for(var i=0;i<sh.length;i++){
+    var v = sh[i] >>> 0;
+    for(var j=0;j<4;j++) h = Math.imul(h ^ ((v >>> (j*8)) & 255), 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+function fnvBytes(u8){
+  var h = 0x811c9dc5 >>> 0;
+  for(var i=0;i<u8.length;i++) h = Math.imul(h ^ u8[i], 16777619) >>> 0;
+  return h >>> 0;
+}
 
 function protectHTML(html){
   var scripts = [];
@@ -988,18 +1007,22 @@ function protectHTML(html){
   });
   if(!scripts.length) return null;
 
-  var salt = makeSalt();
-  var names = S.names.slice(0, 80).join('|');
-  var seed = fnv(names + '|' + salt);
+  var sh = new Uint32Array(4);
+  crypto.getRandomValues(sh);
+  var seed = fnvShares(sh);
   var T = buildTables(seed);
   var key = whiteboxKey(T, seed);
-  var p = scripts.map(function(src, i){
-    return b64e(crypt(utf8e(src), (key ^ Math.imul(i + 1, 0x9e3779b9)) >>> 0));
+  var p = scripts.map(function(src){
+    var nz = new Uint8Array(8);
+    crypto.getRandomValues(nz);
+    var ct = crypt(utf8e(src), (key ^ fnvBytes(nz)) >>> 0);
+    var blob = new Uint8Array(8 + ct.length);
+    blob.set(nz, 0); blob.set(ct, 8);
+    return b64e(blob);
   });
 
-  var data = { w:WASM_B64, salt:salt, names:names, p:p };
-  var dataJS = 'window.__CFX_DATA__=' + JSON.stringify(data).replace(/</g,'\\u003c') + ';';
-  var inject = '<script>' + dataJS + '<\/script>\n<script>' + HTML_RUNTIME + '<\/script>\n';
+  var dataLit = JSON.stringify({ w:WASM_B64, s:Array.prototype.slice.call(sh), p:p }).replace(/</g,'\\u003c');
+  var inject = '<script>' + HTML_RUNTIME + '(' + dataLit + ');<\/script>\n';
 
   out = out.slice(0, firstOffset) + inject + out.slice(firstOffset);
   return out;
