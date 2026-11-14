@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CIPHER FORGE · 前端自保护运行时</title>
+<style>
+:root{
+  --bg:#f4f5f7; --card:#ffffff; --ink:#0d1117; --muted:#6b7280; --line:#e7e9ee;
+  --blue:#2f6bff; --violet:#7c5cff; --teal:#12b8a6;
+  --dark:#0b0f16; --darkline:#1e2633;
+  --mono:"SFMono-Regular","SF Mono","JetBrains Mono",ui-monospace,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:"Inter","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--bg);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  min-height:100vh; overflow-x:hidden;
+}
+body::before{
+  content:""; position:fixed; inset:-20% -10% auto -10%; height:760px; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(46% 52% at 18% 22%, rgba(47,107,255,.20), transparent 70%),
+    radial-gradient(40% 46% at 78% 12%, rgba(124,92,255,.18), transparent 72%),
+    radial-gradient(36% 40% at 62% 40%, rgba(18,184,166,.10), transparent 70%);
+  filter:blur(10px);
+}
+body::after{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.35;
+  background-image:linear-gradient(rgba(13,17,23,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(13,17,23,.028) 1px,transparent 1px);
+  background-size:56px 56px;
+  mask-image:linear-gradient(to bottom,#000 0%,transparent 62%);
+}
+.wrap{position:relative; z-index:1; max-width:1140px; margin:0 auto; padding:0 24px 80px}
+a{color:inherit}
+button{font-family:inherit}
+
+/* nav */
+.nav{display:flex; align-items:center; justify-content:space-between; padding:22px 0 10px}
+.brand{display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.02em}
+.brand .mark{
+  width:26px;height:26px;border-radius:8px;display:inline-block;
+  background:conic-gradient(from 210deg,#2f6bff,#7c5cff,#12b8a6,#2f6bff);
+  box-shadow:0 4px 14px rgba(47,107,255,.32);
+  position:relative;
+}
+.brand .mark::after{content:"";position:absolute;inset:6px;border-radius:4px;background:#fff;opacity:.9}
+.brand span{color:var(--muted); font-weight:600; letter-spacing:.16em; font-size:11px; font-family:var(--mono)}
+.nav-state{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.nav-state i{width:7px;height:7px;border-radius:50%;background:#c3c7d1;display:inline-block;transition:.3s}
+.nav-state.on i{background:var(--teal); box-shadow:0 0 0 4px rgba(18,184,166,.16)}
+
+/* hero */
+.hero{padding:64px 0 40px; max-width:840px}
+.eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.22em; color:var(--muted); text-transform:uppercase; display:flex; align-items:center; gap:10px}
+.eyebrow::before{content:"";width:26px;height:1px;background:linear-gradient(90deg,var(--blue),var(--violet))}
+h1{font-size:clamp(38px,6.2vw,68px); line-height:1.04; letter-spacing:-.035em; margin:18px 0 0; font-weight:750}
+h1 em{
+  font-style:normal;
+  background:linear-gradient(96deg,#2f6bff 6%,#6a5cff 46%,#12b8a6 96%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.lede{font-size:16px; line-height:1.72; color:#4b5563; margin:22px 0 0; max-width:660px}
+.lede code{font-family:var(--mono); font-size:13px; background:#eef1f6; border:1px solid var(--line); padding:1px 6px; border-radius:6px}
+.cta{display:flex; flex-wrap:wrap; gap:12px; margin-top:30px; align-items:center}
+.btn{
+  appearance:none;border:1px solid transparent;border-radius:999px;padding:13px 22px;font-size:14px;font-weight:650;
+  cursor:pointer; transition:transform .16s ease, box-shadow .2s ease, background .2s ease; display:inline-flex;align-items:center;gap:8px;
+}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:linear-gradient(135deg,#2f6bff,#6a5cff);color:#fff;box-shadow:0 10px 26px rgba(47,107,255,.28)}
+.btn.primary:hover{box-shadow:0 14px 30px rgba(47,107,255,.36)}
+.btn.ghost{background:#fff;border-color:var(--line);color:#111827}
+.btn.ghost:hover{border-color:#cfd5e1;box-shadow:0 6px 18px rgba(13,17,23,.06)}
+.btn[disabled]{opacity:.5;cursor:not-allowed;box-shadow:none}
+.hero-stats{display:flex;flex-wrap:wrap;gap:26px;margin-top:38px}
+.hstat{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
+.hstat b{display:block;font-family:var(--sans);font-size:18px;color:var(--ink);letter-spacing:-.01em;margin-bottom:3px}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 1px 2px rgba(13,17,23,.04),0 18px 40px -28px rgba(13,17,23,.22)}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin:58px 0 16px}
+.section-head h2{font-size:22px;letter-spacing:-.02em;margin:0}
+.section-head p{margin:6px 0 0;color:var(--muted);font-size:13px}
+.tagline{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+
+/* pipeline */
+.pipe{padding:8px 10px}
+.pipe-row{display:grid;grid-template-columns:34px 1fr auto;gap:14px;align-items:center;padding:13px 16px;border-radius:12px}
+.pipe-row + .pipe-row{border-top:1px solid #f1f2f6}
+.pipe-row .idx{font-family:var(--mono);font-size:11px;color:#9aa1ae;border:1px solid var(--line);border-radius:7px;text-align:center;padding:3px 0}
+.pipe-row b{font-size:14px;font-weight:620;display:block}
+.pipe-row small{display:block;color:var(--muted);font-size:11.5px;margin-top:3px;font-family:var(--mono);letter-spacing:.01em}
+.pipe-row .dot{width:9px;height:9px;border-radius:50%;background:#d7dbe3;transition:.3s}
+.pipe-row.active .dot{background:var(--blue);box-shadow:0 0 0 5px rgba(47,107,255,.14);animation:pulse 1.1s infinite}
+.pipe-row.done .dot{background:var(--teal)}
+.pipe-row.done .idx{color:var(--teal);border-color:rgba(18,184,166,.4);background:rgba(18,184,166,.06)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* two column */
+.cols{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:18px}
+@media (max-width:860px){.cols{grid-template-columns:1fr}}
+
+/* vault */
+.vault{padding:26px;position:relative;overflow:hidden}
+.vault::after{content:"";position:absolute;width:320px;height:320px;right:-120px;top:-140px;border-radius:50%;background:radial-gradient(circle,rgba(47,107,255,.14),transparent 70%);pointer-events:none}
+.vault-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.vault-title{font-size:15px;font-weight:680;letter-spacing:-.01em}
+.pill{font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:5px 10px;border-radius:999px;background:#f2f4f8;color:#6b7280;border:1px solid var(--line)}
+.pill.ok{background:rgba(18,184,166,.1);color:#0d8f81;border-color:rgba(18,184,166,.25)}
+.pill.warn{background:rgba(255,159,10,.1);color:#9a6400;border-color:rgba(255,159,10,.28)}
+.lockglyph{width:64px;height:64px;border-radius:18px;margin:22px 0 14px;display:grid;place-items:center;background:linear-gradient(145deg,#eef2ff,#f7f1ff);border:1px solid #e3e7f7;color:#4b5bd6;font-size:24px}
+.lockglyph.open{background:linear-gradient(145deg,#e9fbf7,#effcf9);border-color:#c9efe7;color:#0d8f81}
+.vault p{color:var(--muted);font-size:13px;line-height:1.7;margin:0 0 16px}
+.kv{display:grid;grid-template-columns:96px 1fr;gap:8px 14px;font-family:var(--mono);font-size:11.5px;padding:14px 0 4px;border-top:1px dashed #e6e8ef}
+.kv span{color:#9aa1ae}
+.kv b{font-weight:500;color:#242b36;word-break:break-all}
+.secret{margin-top:16px;border-radius:14px;border:1px solid var(--line);background:#fafbfd;padding:16px;filter:blur(5px);opacity:.55;transition:.45s;user-select:none}
+.secret.open{filter:none;opacity:1;user-select:auto;background:#fff;box-shadow:0 10px 30px -18px rgba(47,107,255,.4)}
+.secret .row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.lic{font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:#1f2937}
+.tier{display:flex;gap:10px;align-items:center;margin-top:12px}
+.tier input{width:112px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);font-family:var(--mono);font-size:13px;outline:none;background:#fff}
+.tier input:focus{border-color:#b9c6ff;box-shadow:0 0 0 4px rgba(47,107,255,.1)}
+.tier .res{font-family:var(--mono);font-size:13px;padding:8px 12px;border-radius:999px;background:#eef2ff;color:#2f4bd6;min-width:84px;text-align:center}
+.tiny{font-size:11px;color:#9aa1ae;margin-top:10px;font-family:var(--mono)}
+
+/* console */
+.term{padding:0;overflow:hidden;background:var(--dark);border-color:#121a26;display:flex;flex-direction:column;min-height:420px}
+.term-head{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--darkline);font-family:var(--mono);font-size:11px;color:#7b8798;letter-spacing:.08em}
+.term-head .dots{display:flex;gap:5px;margin-right:8px}
+.term-head .dots i{width:9px;height:9px;border-radius:50%;background:#26303f;display:block}
+.term-body{padding:12px 16px 18px;font-family:var(--mono);font-size:11.5px;line-height:1.75;overflow:auto;max-height:430px;flex:1}
+.line{display:flex;gap:10px;white-space:pre-wrap;word-break:break-all}
+.line .ts{color:#46536a;flex:0 0 auto}
+.line .tg{flex:0 0 auto;color:#5a6b85}
+.line .msg{color:#c8d3e4}
+.line .msg b{color:#8fb6ff;font-weight:500}
+.line.ok .msg{color:#7ee0c8}
+.line.err .msg{color:#ff9c9c}
+
+/* tool */
+.tool{padding:26px;margin-top:18px}
+.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:860px){.tool-grid{grid-template-columns:1fr}}
+.field label{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:640;color:#374151;margin-bottom:8px}
+.field label span{font-family:var(--mono);font-size:10px;color:#9aa1ae;font-weight:400}
+textarea{
+  width:100%;min-height:250px;resize:vertical;border-radius:14px;border:1px solid var(--line);background:#fbfcfe;
+  padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.65;color:#1f2937;outline:none;
+}
+textarea:focus{border-color:#b9c6ff;box-shadow:0 0 0 4px rgba(47,107,255,.08);background:#fff}
+textarea[readonly]{background:#0b0f16;color:#bfd0e6;border-color:#121a26}
+.tool-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;align-items:center}
+.hint{font-size:11.5px;color:#8a92a2;line-height:1.65;margin:12px 0 0}
+.status{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto}
+
+/* notes */
+.notes{padding:24px 26px;margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media (max-width:860px){.notes{grid-template-columns:1fr}}
+.note b{display:block;font-size:12px;letter-spacing:.02em;margin-bottom:6px}
+.note p{font-size:12px;color:var(--muted);line-height:1.7;margin:0}
+.note code{font-family:var(--mono);font-size:11px;background:#f2f4f8;padding:1px 5px;border-radius:5px;border:1px solid var(--line)}
+
+footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:#9aa1ae;letter-spacing:.06em}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:#0d1117;color:#fff;padding:11px 18px;border-radius:999px;font-size:12.5px;opacity:0;pointer-events:none;transition:.3s;z-index:50;box-shadow:0 16px 40px rgba(0,0,0,.25)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="nav">
+    <div class="brand"><i class="mark"></i>CIPHER<span>FORGE</span></div>
+    <div class="nav-state" id="navState"><i></i><span>BOOTING</span></div>
+  </div>
+
+  <section class="hero">
+    <div class="eyebrow">runtime self-defending frontend · single file</div>
+    <h1>把业务逻辑<br>藏进 <em>字节码</em> 里</h1>
+    <p class="lede">
+      函数名、类名、变量名、CSS 变量构成熵源，派生出会话密钥与多态 opcode；
+      自定义字节码在 <code>WASM</code> 私有 VM 内运行时解密执行；
+      JS 与 WASM 互相持有对方缺少的那一半。最外层再套一层 <code>JSFuck</code>。
+    </p>
+    <div class="cta">
+      <button class="btn primary" id="btnUnlock">解锁真逻辑 <span style="font-family:var(--mono);font-size:11px;opacity:.75">→</span></button>
+      <button class="btn ghost" id="btnReset">重新生成会话</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><b id="statNames">—</b>名称池标识符</div>
+      <div class="hstat"><b id="statSalt">—</b>会话盐</div>
+      <div class="hstat"><b id="statPerm">—</b>handler 置换</div>
+      <div class="hstat"><b>1.3 KB</b>WASM 体积</div>
+    </div>
+  </section>
+
+  <div class="section-head">
+    <div>
+      <div class="tagline">01 / pipeline</div>
+      <h2>十层运行时管线</h2>
+      <p>页面加载时逐层推进，全部在浏览器内完成，无外部请求。</p>
+    </div>
+  </div>
+  <section class="card pipe" id="pipe"></section>
+
+  <div class="section-head">
+    <div>
+      <div class="tagline">02 / vault</div>
+      <h2>双向锁与真逻辑</h2>
+      <p>JS 提供环境密钥，WASM 返回校验令牌；任何一侧缺失都只会得到诱饵结果。</p>
+    </div>
+  </div>
+  <div class="cols">
+    <section class="card vault">
+      <div class="vault-head">
+        <div class="vault-title">CORE VAULT</div>
+        <span class="pill" id="vaultPill">LOCKED</span>
+      </div>
+      <div class="lockglyph" id="lockGlyph">⌁</div>
+      <p id="vaultDesc">核心逻辑已在 WASM 线性内存中解密并执行完毕。令牌通过 MBA 等价判断后，才会解开下面的业务载荷。</p>
+      <div class="kv">
+        <span>token</span><b id="tokenOut">••••••••</b>
+        <span>key</span><b id="keyOut">••••••••</b>
+        <span>handler</span><b id="permOut">••••••••</b>
+        <span>wipe</span><b id="wipeOut">pending</b>
+      </div>
+      <div class="secret" id="secret">
+        <div class="row">
+          <div>
+            <div class="tiny">DEMO LICENSE</div>
+            <div class="lic" id="licOut">CF-XXXX-XXXX</div>
+          </div>
+          <span class="pill ok" id="tierPill">READY</span>
+        </div>
+        <div class="tier">
+          <input id="tierInput" type="number" value="820" min="0" max="1200" disabled>
+          <span class="res" id="tierRes">—</span>
+          <span class="tiny">← 解密后的 payload 实时计算</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card term">
+      <div class="term-head"><span class="dots"><i></i><i></i><i></i></span>runtime.log</div>
+      <div class="term-body" id="term"></div>
+    </section>
+  </div>
+
+  <div class="section-head">
+    <div>
+      <div class="tagline">03 / protector</div>
+      <h2>输入 JS，输出混淆 HTML</h2>
+      <p>粘贴任意前端代码，生成一个自带 WASM VM + 双向锁 + 运行时自解密的可运行页面。</p>
+    </div>
+  </div>
+  <section class="card tool">
+    <div class="tool-grid">
+      <div class="field">
+        <label>INPUT · 业务代码 <span id="inMeta">0 chars</span></label>
+        <textarea id="codeInput" spellcheck="false">const box = document.createElement('div');
+box.textContent = '解锁成功 · 这段逻辑来自解密后的业务载荷';
+box.style.cssText = 'margin-top:14px;padding:14px 16px;border-radius:12px;background:linear-gradient(135deg,#eef3ff,#f6f1ff);border:1px solid #dfe6fb;font:600 13px/1.6 system-ui;color:#2b3a67';
+document.getElementById('app').appendChild(box);
+console.log('business payload executed after handshake');</textarea>
+      </div>
+      <div class="field">
+        <label>OUTPUT · HTML <span id="outMeta">idle</span></label>
+        <textarea id="codeOutput" readonly spellcheck="false" placeholder="生成的完整 HTML 会出现在这里…"></textarea>
+      </div>
+    </div>
+    <div class="tool-actions">
+      <button class="btn primary" id="btnGen">生成自保护 HTML</button>
+      <button class="btn ghost" id="btnFuck">叠加 JSFuck 外层</button>
+      <button class="btn ghost" id="btnPreview">预览</button>
+      <button class="btn ghost" id="btnCopy">复制</button>
+      <button class="btn ghost" id="btnDownload">下载 .html</button>
+      <span class="status" id="genStatus">ready</span>
+    </div>
+    <p class="hint">
+      JSFuck 模式只包裹引导器（bootstrap），加密载荷与 WASM 字节码仍以数据形式存在——这是体积上唯一可行的分层方式。
+      输入长度建议 ≤ 900 字符，JSFuck 输出体积约为输入的 4–6 千倍。
+    </p>
+  </section>
+
+  <div class="section-head">
+    <div>
+      <div class="tagline">04 / threat model</div>
+      <h2>它提高成本，但它不是加密</h2>
+    </div>
+  </div>
+  <section class="card notes">
+    <div class="note">
+      <b>真正的作用</b>
+      <p>抬高静态阅读、断点调试、LLM 批量还原与跨会话复用的成本。多态 handler 让每次刷新页面的字节含义都不同。</p>
+    </div>
+    <div class="note">
+      <b>边界</b>
+      <p>只要代码在用户机器上执行，<code>确定性</code> 就无法隐藏。密钥、许可证判定、计费等敏感逻辑应放在服务端；前端混淆只保护“阅读门槛”。</p>
+    </div>
+    <div class="note">
+      <b>诱饵层（BLA）</b>
+      <p>页面内确实存在假端点、假密钥、自洽但错误的 shadow 调用链。它们不参与真实路径，只消耗分析预算。</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>CIPHER FORGE · wasm vm · polymorphic handlers · jsfuck</span>
+    <span>no CDN · no build step · one file</span>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   0. primitives
+   ============================================================ */
+var WASM_B64 = 'AGFzbQEAAAABIgZgAAF/YAJ/fwBgAn9/AX9gAX8Bf2ABfwBgBX9/f39/AX8DCAcAAQIDAQQFBQMBAAIGBgF/AUEBCwcbBANtZW0CAAR3aXBlAAEEaW5pdAAFA3J1bgAGCqoJBywBAX8jACEAIAAgAEENdHMhACAAIABBEXZzIQAgACAAQQV0cyEAIAAkACAACygBAX9BACECAkADQCACIAFPDQEgACACakEAOgAAIAJBAWohAgwACwsLEAAgAEEIdCABckEQdEEQdQsPAEHI3AMgAEECdGooAgALEQBByNwDIABBAnRqIAE2AgALrwEBA38gAEH1863pBiAAQQBHGyQAQQAhAQJAA0AgAUEQTw0BQYAEIAFqIAE6AAAgAUEBaiEBDAALC0EPIQECQANAIAFFDQEQACABQQFqcCECQYAEIAFqLQAAIQNBgAQgAWpBgAQgAmotAAA6AABBgAQgAmogAzoAACABQQFrIQEMAAsLQQAhAQJAA0AgAUGAAk8NASABQYAEIAFBD3FqLQAAOgAAIAFBAWohAQwACwsL7QYBD38gAkGx893xeWxBufPd8XlzIQ0gAyANayANIANrcgRAQX8PCyABQQVJBEBBfg8LIAJBufPd8XkgAkEARxshDkEAIQYCQANAIAYgAU8NASAOIA5BDXRzIQ4gDiAOQRF2cyEOIA4gDkEFdHMhDiAAIAZqIAAgBmotAAAgDkH/AXFzOgAAIAZBAWohBgwACwsgAUEEayEQQcW78oh4IRFBACEGAkADQCAGIBBPDQEgESAAIAZqLQAAc0GTg4AIbCERIAZBAWohBgwACwsgACAQai0AAEEYdCAAIBBBAWpqLQAAQRB0ciAAIBBBAmpqLQAAQQh0IAAgEEEDamotAAByciESIBEgEkcEQCAAIAEQAUF9DwtByNwDQcAAEAFBACEFQQAhD0EAIRMCQANAIBNBAEcNASAFIBBPDQEgACAFai0AACEHIActAAAhCCAAIAVBAWpqLQAAIQkgACAFQQJqai0AACEKIAAgBUEDamotAAAhCyAIQQBGBEAgBUEEaiEFDAELIAhBAUYEQCAJIApBCHQgC3IQBCAFQQRqIQUMAQsgCEECRgRAIAkgChADEAQgBUEEaiEFDAELIAhBA0YEQCAJIAoQAyALEANqEAQgBUEEaiEFDAELIAhBBEYEQCAJIAoQAyALEANrEAQgBUEEaiEFDAELIAhBBUYEQCAJIAoQAyALEANzEAQgBUEEaiEFDAELIAhBBkYEQCAJIAoQAyALEANxEAQgBUEEaiEFDAELIAhBB0YEQCAJIAoQAyALEANBH3F0EAQgBUEEaiEFDAELIAhBCEYEQCAJIAoQAyALEANBH3F2EAQgBUEEaiEFDAELIAhBCUYEQCAJIAoQAyALEANsEAQgBUEEaiEFDAELIAhBCkYEQCAFQQRqIAogCxACaiEFDAELIAhBC0YEQCAFQQRqIAogCxACaiEMIAwgBUEEaiAJEANFGyEFDAELIAhBDEYEQCAFQQRqIAogCxACaiEMIAwgBUEEaiAJEANBAEcbIQUMAQsgCEENRgRAIAQgD2ogCRADQf8BcToAACAPQQFqIQ8gBUEEaiEFDAELIAhBDkYEQCAJIAkQAyAKEANBldPH3gVqcxAEIAVBBGohBQwBCyAIQQ9GBEBBASETDAILQQEhEwsLIAAgARABQcjcA0HAABABIA8L';
+var $ = function(s, r){ return (r||document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+
+function fnv(s){
+  var h = 0x811c9dc5 >>> 0;
+  for(var i=0;i<s.length;i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619) >>> 0;
+  return h >>> 0;
+}
+function fnvBytes(u8){
+  var h = 0x811c9dc5 >>> 0;
+  for(var i=0;i<u8.length;i++) h = Math.imul(h ^ u8[i], 16777619) >>> 0;
+  return h >>> 0;
+}
+function hex(n,w){ return (n>>>0).toString(16).padStart(w||8,'0'); }
+function b64e(u8){
+  var s='', CH=0x8000;
+  for(var i=0;i<u8.length;i+=CH) s += String.fromCharCode.apply(null, u8.subarray(i,i+CH));
+  return btoa(s);
+}
+function b64d(s){ return Uint8Array.from(atob(s), function(c){ return c.charCodeAt(0); }); }
+function utf8e(s){ return new TextEncoder().encode(s); }
+function utf8d(u8){ return new TextDecoder().decode(u8); }
+function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+function mulberry(a){
+  a >>>= 0;
+  return function(){
+    a = (a + 0x6D2B79F5) | 0;
+    var t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+var OP = { NOP:0,PUSH:1,MOV:2,ADD:3,SUB:4,XOR:5,AND:6,SHL:7,SHR:8,MUL:9,JMP:10,JZ:11,JNZ:12,OUT:13,MIX:14,HALT:15 };
+
+/* ============================================================
+   1. state + ui helpers
+   ============================================================ */
+var S = {
+  names:[], pool:'', salt:'', seed:0, vm:null, perm:[], tables:null,
+  key:0, env:0, token:[], expected:[], unlocked:false, cipher:'', tier:null, booted:false, wiped:false
+};
+var t0 = performance.now();
+function stamp(){
+  var d = ((performance.now()-t0)/1000).toFixed(2);
+  return 't+' + d + 's';
+}
+function logLine(tag, msg, cls){
+  var el = document.createElement('div');
+  el.className = 'line ' + (cls||'');
+  el.innerHTML = '<span class="ts">'+stamp()+'</span><span class="tg">'+tag+'</span><span class="msg">'+msg+'</span>';
+  var term = $('#term');
+  term.appendChild(el);
+  term.scrollTop = term.scrollHeight;
+}
+function toast(msg){
+  var t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove('on'); }, 1800);
+}
+
+/* ============================================================
+   2. layer 1: identifier entropy pool
+   ============================================================ */
+function collectNames(){
+  var raw = [];
+
+  $$('[id]').forEach(function(el){ raw.push(el.id); });
+  $$('[class]').forEach(function(el){
+    if(el.classList) Array.prototype.forEach.call(el.classList, function(c){ raw.push(c); });
+  });
+  $$('body *').forEach(function(el){
+    for(var i=0;i<el.attributes.length;i++){
+      var a = el.attributes[i];
+      if(a.name.indexOf('data-') === 0) raw.push(a.name.slice(5));
+    }
+  });
+  Array.prototype.forEach.call(document.styleSheets, function(sheet){
+    try{
+      Array.prototype.forEach.call(sheet.cssRules, function(rule){
+        var st = rule.style; if(!st) return;
+        Array.prototype.forEach.call(st, function(p){
+          if(p.indexOf('--') === 0) raw.push(p.slice(2));
+        });
+      });
+    }catch(e){}
+  });
+  Array.prototype.forEach.call(document.scripts, function(sc){
+    if(sc.src) return;
+    var text = sc.textContent || '';
+    var re = /(?:function\s+([A-Za-z_$][\w$]*))|(?:var\s+([A-Za-z_$][\w$]*)\s*=)|(?:const\s+([A-Za-z_$][\w$]*)\s*=)|(?:let\s+([A-Za-z_$][\w$]*)\s*=)|(?:class\s+([A-Za-z_$][\w$]*))/g;
+    var m; while((m = re.exec(text))) raw.push(m[1]||m[2]||m[3]||m[4]||m[5]);
+  });
+  ['validateToken','_checkIntegrity','renderApp','initCore','verifyEnv','deriveSeed','opcodeTable','shadowValidate'].forEach(function(x){ raw.push(x); });
+
+  var seen = Object.create(null);
+  var out = [];
+  raw.forEach(function(s){
+    s = String(s).replace(/[^A-Za-z0-9_$-]/g,'');
+    if(s.length < 3) return;
+    if(seen[s]) return;
+    seen[s] = 1; out.push(s);
+  });
+  out.sort();
+  return out;
+}
+
+/* ============================================================
+   3. layer 2/3: salt + derived seeds
+   ============================================================ */
+function makeSalt(){
+  var a = new Uint8Array(8);
+  crypto.getRandomValues(a);
+  var s = '';
+  for(var i=0;i<a.length;i++) s += hex(a[i],2);
+  return s;
+}
+function buildTables(seed){
+  var rnd = mulberry(seed ^ 0x9e3779b9);
+  function mk(){
+    var t = new Uint32Array(256);
+    for(var i=0;i<256;i++) t[i] = (rnd() * 4294967296) >>> 0;
+    return t;
+  }
+  return [mk(), mk(), mk(), mk()];
+}
+function whiteboxKey(T, seed){
+  return (T[0][seed & 255] ^ T[1][(seed>>>8) & 255] ^ T[2][(seed>>>16) & 255] ^ T[3][(seed>>>24) & 255]) >>> 0;
+}
+function envOf(key){
+  return ((Math.imul(key, 2654435761) ^ 0x9e3779b9) >>> 0);
+}
+function tokenOf(key){
+  var x = key >>> 0;
+  x = (x ^ (x << 13)) >>> 0;
+  x = (x ^ (x >>> 17)) >>> 0;
+  x = (x ^ (x << 5)) >>> 0;
+  return [x & 255, (x>>>8) & 255, (x>>>16) & 255, (x>>>24) & 255];
+}
+function crypt(u8, key){
+  var out = u8.slice();
+  var st = (key >>> 0) || 0x9e3779b9;
+  for(var i=0;i<out.length;i++){
+    st = (st ^ (st << 13)) | 0;
+    st = (st ^ (st >>> 17)) | 0;
+    st = (st ^ (st << 5)) | 0;
+    out[i] ^= (st & 255);
+  }
+  return out;
+}
+
+/* ============================================================
+   4. layer 4/8: bytecode assembly + polymorphic handler map
+   ============================================================ */
+function assembleToken(seed){
+  var P = [];
+  function p(op,a,b,c){ P.push(op & 255, (a||0)&255, (b||0)&255, (c||0)&255); }
+  p(OP.PUSH,0,(seed>>>24)&255,(seed>>>16)&255);
+  p(OP.PUSH,2,0,16); p(OP.SHL,0,0,2);
+  p(OP.PUSH,1,(seed>>>8)&255,seed&255);
+  p(OP.ADD,0,0,1);
+  p(OP.PUSH,1,0,13); p(OP.SHL,2,0,1); p(OP.XOR,0,0,2);
+  p(OP.PUSH,1,0,17); p(OP.SHR,2,0,1); p(OP.XOR,0,0,2);
+  p(OP.PUSH,1,0,5);  p(OP.SHL,2,0,1); p(OP.XOR,0,0,2);
+  for(var i=0;i<4;i++){
+    p(OP.OUT,0);
+    if(i<3){ p(OP.PUSH,1,0,8); p(OP.SHR,0,0,1); }
+  }
+  p(OP.HALT);
+  return Uint8Array.from(P);
+}
+function remapOps(prog, perm){
+  var out = prog.slice();
+  for(var i=0;i<out.length;i+=4) out[i] = perm.indexOf(out[i]);
+  return out;
+}
+
+/* ============================================================
+   5. wasm glue
+   ============================================================ */
+async function bootWasm(seed){
+  var mod = await WebAssembly.instantiate(b64d(WASM_B64), {});
+  var vm = mod.instance.exports;
+  vm.init(seed);
+  var mem = new Uint8Array(vm.mem.buffer);
+  S.perm = Array.prototype.slice.call(mem.slice(512, 528));
+  return vm;
+}
+function runTokenProgram(vm, key){
+  var mapped = remapOps(assembleToken(key), S.perm);
+  var packed = new Uint8Array(mapped.length + 4);
+  packed.set(mapped, 0);
+  var sum = fnvBytes(mapped);
+  packed[mapped.length]   = (sum>>>24)&255;
+  packed[mapped.length+1] = (sum>>>16)&255;
+  packed[mapped.length+2] = (sum>>>8)&255;
+  packed[mapped.length+3] = sum&255;
+  var enc = crypt(packed, key);
+  var mem = new Uint8Array(vm.mem.buffer);
+  mem.set(enc, 1024);
+  var n = vm.run(1024, enc.length, key, S.env, 60000);
+  var got = n > 0 ? Array.prototype.slice.call(mem.slice(60000, 60000+n)) : [];
+  S.wiped = mem.slice(1024, 1024 + enc.length).every(function(b){ return b === 0; });
+  return { status:n, token:got };
+}
+
+/* ============================================================
+   6. layers 5/9: whitebox key + MBA verification
+   ============================================================ */
+function mbaEq(a, b){
+  if(!a || !b || a.length !== b.length) return false;
+  var acc = 0;
+  for(var i=0;i<a.length;i++) acc |= (a[i] ^ b[i]) & 255;
+  /* opaque predicate: always true, keeps the optimizer from folding the branch */
+  if(((acc ^ acc) | 0) !== 0) return false;
+  return acc === 0;
+}
+function opaqueTrue(seed){
+  var x = seed >>> 0;
+  return (((x ^ x) | 1) - 1) === 0;
+}
+
+/* ============================================================
+   7. decoy layer (BLA)
+   ============================================================ */
+var API_ENDPOINT = 'https://api.cypherforge.dev/v2/entitlement/verify';
+var SHADOW_KEY = 'sk_demo_9f4c2b7e1a6d8c3f5b0e7a1c';
+function __verifyEntitlement(license){
+  var h = fnv(String(license) + SHADOW_KEY);
+  return (h % 0x7fffffff) === 0x5f3a2b1c;
+}
+function __shadowValidate(seed){
+  var r = mulberry(seed ^ 0x51ed270b);
+  var out = [];
+  for(var i=0;i<8;i++) out.push(hex((r()*0xffffffff)>>>0, 8));
+  return out.join('-');
+}
+function __syncTelemetry(payload){
+  /* decoy: no network in this build; the URL above is a tarpit */
+  return fnv(API_ENDPOINT + JSON.stringify(payload));
+}
+
+/* ============================================================
+   8. boot pipeline
+   ============================================================ */
+var STAGES = [
+  ['名称池采集','id / class / data-* / CSS 变量 / 函数名','names'],
+  ['归一化 + 会话盐','FNV-1a · 64-bit salt','salt'],
+  ['opcode 种子 / 解密密钥','xorshift32 · 每会话唯一','seed'],
+  ['多态 handler 表','16! 空间 · 会话内重排','perm'],
+  ['白盒密钥 T1..T4','4 × 256 LUT · 组合求值','wb'],
+  ['反调试 / 反 Hook','时延探针 · 函数源码校验','guard'],
+  ['JS → WASM 环境密钥','env = k·φ ^ c','env'],
+  ['WASM 解密 + 执行','线性内存内自解密','vm'],
+  ['完整性 + 令牌校验','FNV-1a · MBA 等价判断','check'],
+  ['运行时覆写 / 状态销毁','memory.fill(0) · 数组清零','wipe']
+];
+function renderPipeline(){
+  var host = $('#pipe');
+  host.innerHTML = '';
+  STAGES.forEach(function(st, i){
+    var row = document.createElement('div');
+    row.className = 'pipe-row'; row.id = 'row'+i;
+    row.innerHTML =
+      '<span class="idx">'+String(i+1).padStart(2,'0')+'</span>'+
+      '<div><b>'+st[0]+'</b><small id="meta'+i+'">等待</small></div>'+
+      '<i class="dot"></i>';
+    host.appendChild(row);
+  });
+}
+function stageState(i, state, meta){
+  var row = $('#row'+i); if(!row) return;
+  row.classList.remove('active','done');
+  if(state === 'active') row.classList.add('active');
+  if(state === 'done') row.classList.add('done');
+  if(meta) $('#meta'+i).textContent = meta;
+}
+
+async function boot(){
+  renderPipeline();
+  logLine('sys','CIPHER FORGE runtime boot · single file / no CDN');
+
+  stageState(0,'active');
+  S.names = collectNames();
+  S.pool = S.names.join('|');
+  stageState(0,'done', S.names.length + ' identifiers · ' + S.pool.length + ' chars');
+  $('#statNames').textContent = String(S.names.length);
+  logLine('names','采集 <b>'+S.names.length+'</b> 个标识符，字符池 '+S.pool.length+' chars');
+  await sleep(160);
+
+  stageState(1,'active');
+  S.salt = makeSalt();
+  stageState(1,'done', 'salt='+S.salt);
+  $('#statSalt').textContent = S.salt.slice(0,8)+'…';
+  logLine('kdf','会话盐 '+S.salt);
+  await sleep(160);
+
+  stageState(2,'active');
+  S.seed = fnv(S.pool + '|' + S.salt);
+  S.tables = buildTables(S.seed);
+  S.key = whiteboxKey(S.tables, S.seed);
+  S.env = envOf(S.key);
+  S.expected = tokenOf(S.key);
+  stageState(2,'done','seed=0x'+hex(S.seed));
+  logLine('kdf','seed = 0x'+hex(S.seed)+' · key = 0x'+hex(S.key));
+  await sleep(160);
+
+  stageState(3,'active');
+  S.vm = await bootWasm(S.seed);
+  stageState(3,'done','map['+S.perm.slice(0,8).join(',')+'…]');
+  $('#statPerm').textContent = '16 → 16';
+  logLine('vm','handler 表已重排 · perm = ['+S.perm.join(',')+']');
+  await sleep(160);
+
+  stageState(4,'active');
+  stageState(4,'done','T1..T4 = 4×256 u32');
+  logLine('wb','白盒表 T1..T4 就绪 · key 由 4 张表异或组合');
+  await sleep(140);
+
+  stageState(5,'active');
+  var g = guard();
+  stageState(5,'done', g.ok ? '清洁 · dt='+g.dt.toFixed(1)+'ms' : '可疑环境');
+  logLine(g.ok?'guard':'warn', 'devtools 时延探针 '+g.dt.toFixed(1)+'ms · 原生函数校验 '+(g.hooked?'异常':'正常'), g.ok?'':'err');
+  await sleep(140);
+
+  stageState(6,'active');
+  stageState(6,'done','env=0x'+hex(S.env));
+  logLine('lock','JS → WASM 环境密钥 0x'+hex(S.env));
+  await sleep(140);
+
+  stageState(7,'active');
+  var r = runTokenProgram(S.vm, S.key);
+  S.token = r.token;
+  stageState(7,'done','status='+r.status+' · out='+r.token.length+'B');
+  logLine('vm','字节码在 WASM 内解密执行 · status='+r.status+' · token='+r.token.map(function(b){return hex(b,2);}).join(' '));
+  await sleep(140);
+
+  stageState(8,'active');
+  var ok = r.status === 4 && mbaEq(r.token, S.expected);
+  stageState(8, ok?'done':'active', ok ? 'MBA 等价 · 通过' : '令牌不匹配');
+  logLine(ok?'ok':'err', ok ? '令牌校验通过 · 返回 unlock token' : '令牌不匹配 · 进入诱饵路径', ok?'ok':'err');
+  await sleep(140);
+
+  stageState(9,'active');
+  S.cipher = b64e(crypt(utf8e(PAYLOAD_SRC), S.key));
+  await sleep(120);
+  stageState(9,'done', S.wiped ? 'bytecode wiped ✓' : 'wipe pending');
+  $('#wipeOut').textContent = S.wiped ? 'bytecode + regs → 0' : 'pending';
+  logLine('wipe','WASM 线性内存中的字节码与寄存器已覆写为 0');
+  $('#navState').classList.add('on');
+  $('#navState').querySelector('span').textContent = 'ARMED';
+  S.booted = true;
+  $('#tokenOut').textContent = S.token.map(function(b){return hex(b,2);}).join(' ');
+  $('#keyOut').textContent = '0x'+hex(S.key);
+  $('#permOut').textContent = '['+S.perm.join(',')+']';
+}
+
+function guard(){
+  var start = performance.now();
+  var acc = 0;
+  for(var i=0;i<180000;i++) acc = (acc + Math.imul(i, 7)) >>> 0;
+  var dt = performance.now() - start;
+  var hooked = false;
+  try{
+    hooked = String(Function.prototype.toString).indexOf('[native code]') === -1;
+  }catch(e){ hooked = true; }
+  return { ok: dt < 900 && !hooked, dt:dt, hooked:hooked };
+}
+
+/* ============================================================
+   9. payload (decrypted only after the handshake)
+   ============================================================ */
+var PAYLOAD_SRC = "function(score){" +
+  "var x=(score|0);" +
+  "if((((x^x)|0)!==0)) return 'VOID';" +
+  "if(x>=900) return 'OBSIDIAN';" +
+  "if(x>=760) return 'PLATINUM';" +
+  "if(x>=620) return 'GOLD';" +
+  "if(x>=0) return 'SILVER';" +
+  "return 'REJECTED';" +
+"}";
+
+async function unlock(){
+  if(!S.booted){ toast('运行时尚未就绪'); return; }
+  if(S.unlocked){ return; }
+  var btn = $('#btnUnlock');
+  btn.disabled = true;
+  $('#vaultPill').textContent = 'VERIFYING';
+  $('#vaultPill').className = 'pill warn';
+  logLine('lock','开始双向锁握手 · 采集环境指纹');
+
+  var fp = [navigator.userAgent.length, screen.width, screen.height,
+            new Date().getTimezoneOffset(), (navigator.language||'').length, S.salt.length].join(':');
+  await sleep(180);
+  logLine('env','环境指纹 '+fnv(fp).toString(16)+' · 仅用于派生，不离开本机');
+
+  var r = runTokenProgram(S.vm, S.key);
+  S.token = r.token;
+  var ok = r.status === 4 && mbaEq(r.token, S.expected) && opaqueTrue(S.seed);
+  logLine('vm','VM 返回 token='+r.token.map(function(b){return hex(b,2);}).join(' ')+' · status='+r.status);
+
+  if(!ok){
+    decoyPath();
+    return;
+  }
+
+  /* decrypt payload only now */
+  var raw = crypt(b64d(S.cipher), S.key);
+  var src = utf8d(raw);
+  raw.fill(0);
+  S.tier = (new Function('return (' + src + ')'))();
+  S.unlocked = true;
+
+  $('#tokenOut').textContent = r.token.map(function(b){return hex(b,2);}).join(' ');
+  $('#keyOut').textContent = '0x' + hex(S.key);
+  $('#permOut').textContent = '[' + S.perm.join(',') + ']';
+  $('#wipeOut').textContent = 'bytecode + regs → 0';
+  $('#vaultPill').textContent = 'UNLOCKED';
+  $('#vaultPill').className = 'pill ok';
+  $('#lockGlyph').textContent = '⌁';
+  $('#lockGlyph').classList.add('open');
+  $('#licOut').textContent = 'CF-' + hex(S.key).toUpperCase() + '-' + hex(S.seed,4).toUpperCase();
+  $('#tierPill').textContent = 'LIVE';
+  $('#secret').classList.add('open');
+  var input = $('#tierInput');
+  input.disabled = false;
+  input.addEventListener('input', updateTier);
+  updateTier();
+  logLine('ok','业务载荷已解密并实例化 · 可交互 · 内存中的密文已清零','ok');
+  toast('真逻辑已解锁');
+  btn.textContent = '已解锁';
+  stageState(8,'done','MBA 等价 · 通过');
+}
+
+function updateTier(){
+  var v = parseInt($('#tierInput').value, 10);
+  if(isNaN(v)) v = 0;
+  try{
+    $('#tierRes').textContent = S.tier(v);
+  }catch(e){
+    $('#tierRes').textContent = 'ERR';
+  }
+}
+
+function decoyPath(){
+  /* decoy: everything below is plausible but wrong */
+  var fake = __shadowValidate(S.seed);
+  logLine('decoy','环境校验失败 · 切换到 shadow 通道 '+fake.slice(0,18), 'err');
+  $('#vaultPill').textContent = 'DECOY';
+  $('#vaultPill').className = 'pill warn';
+  $('#licOut').textContent = 'CF-' + hex(fnv(fake)).toUpperCase() + '-DECOY';
+  $('#secret').classList.add('open');
+  $('#tierRes').textContent = 'SILVER';
+  toast('诱饵路径');
+}
+
+/* ============================================================
+   10. JSFuck encoder (strict []()!+)
+   ============================================================ */
+function encodeJSFuck(source){
+  var CH = Object.create(null);
+  function idxExpr(n){
+    if(n === 0) return '[+[]]';
+    var s = '';
+    for(var i=0;i<n;i++) s += '+!![]';
+    return '[' + s + ']';
+  }
+  function put(ch, expr){ if(ch && !CH[ch]) CH[ch] = expr; }
+  function addSource(expr, str){
+    for(var i=0;i<str.length;i++) put(str.charAt(i), '(' + expr + ')' + idxExpr(i));
+  }
+  function str(s){
+    var parts = [];
+    for(var i=0;i<s.length;i++){
+      var c = s.charAt(i);
+      if(!CH[c]) throw new Error('jsfuck: 无法构造字符 ' + JSON.stringify(c));
+      parts.push('(' + CH[c] + ')');
+    }
+    return parts.join('+');
+  }
+
+  addSource('(![]+[])', 'false');
+  addSource('(!![]+[])', 'true');
+  addSource('([][[]]+[])', 'undefined');
+
+  var SF = str('filter');
+  addSource('([][' + SF + ']+[])', 'function filter() { [native code] }');
+  var SC = str('constructor');
+  var FN = '[][' + SF + '][' + SC + ']';
+
+  addSource('((+[])[' + SC + ']+[])', 'function Number() { [native code] }');
+  addSource('(([]+[])[' + SC + ']+[])', 'function String() { [native code] }');
+  addSource('((![])[' + SC + ']+[])', 'function Boolean() { [native code] }');
+  addSource('([][' + SC + ']+[])', 'function Array() { [native code] }');
+
+  for(var d=0;d<=9;d++){
+    var n = d === 0 ? '+[]' : '+!![]' + new Array(d).join('+!![]');
+    put(String(d), '((' + n + ')+[])');
+  }
+
+  /* p from self.origin — http(s) origins contain "p" at index 3 */
+  var ORIGIN = '(' + FN + '(' + str('return self') + ')()[' + str('origin') + ']+[])';
+  put('p', '(' + ORIGIN + ')[+!![]+!![]+!![]]');
+
+  var EF = FN + '(' + str('return escape') + ')()';
+  var SPACE = '(([][' + SF + ']+[])[' + '+!![]+!![]+!![]+!![]+!![]+!![]+!![]+!![]' + '])';
+  put('%', '(' + EF + ')(' + SPACE + ')[+[]]');
+  var UF = FN + '(' + str('return unescape') + ')()';
+
+  var enc = '';
+  for(var i=0;i<source.length;i++){
+    var code = source.charCodeAt(i);
+    if(code < 256){
+      enc += '%' + code.toString(16).padStart(2,'0');
+    }else{
+      enc += '%u' + code.toString(16).padStart(4,'0');
+    }
+  }
+  return FN + '(' + UF + '(' + str(enc) + '))()';
+}
+
+/* ============================================================
+   11. protected HTML generator
+   ============================================================ */
+var GEN_STYLE = "html,body{margin:0;background:#f4f5f7;font-family:Inter,-apple-system,'PingFang SC',system-ui,sans-serif;color:#0d1117}" +
+  ".wrap{max-width:720px;margin:0 auto;padding:56px 22px}" +
+  ".badge{display:inline-block;font:600 10px/1 ui-monospace,monospace;letter-spacing:.16em;color:#5b6472;border:1px solid #e2e5ec;background:#fff;padding:8px 12px;border-radius:999px}" +
+  "h1{font-size:26px;letter-spacing:-.02em;margin:18px 0 8px}" +
+  "p{color:#6b7280;font-size:13.5px;line-height:1.7;margin:0 0 18px}" +
+  ".panel{background:#fff;border:1px solid #e7e9ee;border-radius:16px;padding:18px;box-shadow:0 18px 40px -30px rgba(13,17,23,.3)}" +
+  "#stage{font:600 12.5px/1.6 ui-monospace,monospace;color:#2f6bff}" +
+  "pre{margin:14px 0 0;padding:14px;border-radius:12px;background:#0b0f16;color:#bfd0e6;font:11px/1.7 ui-monospace,monospace;min-height:120px;white-space:pre-wrap;word-break:break-all}" +
+  ".k{color:#8fb6ff}";
+
+var GEN_RUNTIME = [
+"(function(){",
+"  'use strict';",
+"  var D = window.__CF_DATA__;",
+"  function fnv(s){var h=0x811c9dc5>>>0;for(var i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619)>>>0;return h>>>0;}",
+"  function fnvB(u8){var h=0x811c9dc5>>>0;for(var i=0;i<u8.length;i++)h=Math.imul(h^u8[i],16777619)>>>0;return h>>>0;}",
+"  function mb(a){a>>>=0;return function(){a=(a+0x6D2B79F5)|0;var t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}",
+"  function tabs(seed){var r=mb(seed^0x9e3779b9);function mk(){var t=new Uint32Array(256);for(var i=0;i<256;i++)t[i]=(r()*4294967296)>>>0;return t;}return[mk(),mk(),mk(),mk()];}",
+"  function wb(T,s){return (T[0][s&255]^T[1][(s>>>8)&255]^T[2][(s>>>16)&255]^T[3][(s>>>24)&255])>>>0;}",
+"  function envOf(k){return ((Math.imul(k,2654435761)^0x9e3779b9)>>>0);}",
+"  function crypt(u8,k){var o=u8.slice();var st=(k>>>0)||0x9e3779b9;for(var i=0;i<o.length;i++){st=(st^(st<<13))|0;st=(st^(st>>>17))|0;st=(st^(st<<5))|0;o[i]^=(st&255);}return o;}",
+"  function tok(k){var x=k>>>0;x=(x^(x<<13))>>>0;x=(x^(x>>>17))>>>0;x=(x^(x<<5))>>>0;return[x&255,(x>>>8)&255,(x>>>16)&255,(x>>>24)&255];}",
+"  function b64d(s){return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0);});}",
+"  var OP={PUSH:1,ADD:3,SHL:7,SHR:8,XOR:5,OUT:13,HALT:15};",
+"  function asm(seed){var P=[];function p(op,a,b,c){P.push(op&255,(a||0)&255,(b||0)&255,(c||0)&255);}",
+"    p(OP.PUSH,0,(seed>>>24)&255,(seed>>>16)&255);p(OP.PUSH,2,0,16);p(OP.SHL,0,0,2);",
+"    p(OP.PUSH,1,(seed>>>8)&255,seed&255);p(OP.ADD,0,0,1);",
+"    p(OP.PUSH,1,0,13);p(OP.SHL,2,0,1);p(OP.XOR,0,0,2);",
+"    p(OP.PUSH,1,0,17);p(OP.SHR,2,0,1);p(OP.XOR,0,0,2);",
+"    p(OP.PUSH,1,0,5);p(OP.SHL,2,0,1);p(OP.XOR,0,0,2);",
+"    for(var i=0;i<4;i++){p(OP.OUT,0);if(i<3){p(OP.PUSH,1,0,8);p(OP.SHR,0,0,1);}}",
+"    p(OP.HALT);return Uint8Array.from(P);}",
+"  function log(m,cls){var el=document.getElementById('log');if(!el)return;var s=document.createElement('span');s.textContent=m+'\\n';if(cls)s.style.color='#ffb4b4';el.appendChild(s);el.scrollTop=el.scrollHeight;}",
+"  function stage(m){var el=document.getElementById('stage');if(el)el.textContent=m;}",
+"  function decoy(){stage('环境校验失败 · shadow 通道');log('handshake rejected, running decoy chain',1);try{var f=document.createElement('div');f.textContent='DECOY // no real logic executed';f.style.cssText='margin-top:14px;padding:12px;border-radius:10px;background:#fff5f5;border:1px solid #ffd9d9;color:#a33;font:600 12px ui-monospace,monospace';document.getElementById('app').appendChild(f);}catch(e){}}",
+"  var _log=console.log.bind(console);",
+"  console.log=function(){try{log(Array.prototype.slice.call(arguments).join(' '));}catch(e){}_log.apply(console,arguments);};",
+"  function start(){",
+"    try{",
+"      var seed=fnv(D.names+'|'+D.salt);",
+"      var T=tabs(seed),key=wb(T,seed),env=envOf(key);",
+"      stage('running handshake · env=0x'+key.toString(16));",
+"      WebAssembly.instantiate(b64d(D.w),{}).then(function(mod){",
+"        var vm=mod.instance.exports;vm.init(seed);",
+"        var mem=new Uint8Array(vm.mem.buffer);",
+"        var perm=Array.prototype.slice.call(mem.slice(512,528));",
+"        var prog=asm(key);for(var i=0;i<prog.length;i+=4)prog[i]=perm.indexOf(prog[i]);",
+"        var packed=new Uint8Array(prog.length+4);packed.set(prog,0);",
+"        var sum=fnvB(prog);packed[prog.length]=(sum>>>24)&255;packed[prog.length+1]=(sum>>>16)&255;packed[prog.length+2]=(sum>>>8)&255;packed[prog.length+3]=sum&255;",
+"        var enc=crypt(packed,key);mem.set(enc,1024);",
+"        var n=vm.run(1024,enc.length,key,env,60000);",
+"        var got=n>0?Array.prototype.slice.call(mem.slice(60000,60000+n)):[];",
+"        var exp=tok(key),diff=0;for(var j=0;j<4;j++)diff|=(got[j]^exp[j])|0;",
+"        if(diff!==0){decoy();return;}",
+"        var raw=crypt(b64d(D.cipher),key);",
+"        var src=new TextDecoder().decode(raw);raw.fill(0);",
+"        stage('handshake ok · token '+exp.map(function(b){return ('0'+b.toString(16)).slice(-2);}).join(' ')+' · decrypting payload');",
+"        log('bytecode wiped · payload instantiated');",
+"        (new Function(src))();",
+"      }).catch(function(e){decoy();});",
+"    }catch(e){decoy();}",
+"  }",
+"  window.__CF_UNLOCK=start;",
+"  if(!D.manual) start();",
+"})();"
+].join('\n');
+
+function buildHTML(userCode, mode){
+  mode = mode || 'protect';
+  var salt = makeSalt();
+  var names = S.names.slice(0, 80).join('|');
+  var seed = fnv(names + '|' + salt);
+  var T = buildTables(seed);
+  var key = whiteboxKey(T, seed);
+  var cipher = b64e(crypt(utf8e(userCode), key));
+
+  var data = { w:WASM_B64, salt:salt, names:names, cipher:cipher, manual:(mode === 'jsfuck') };
+  var dataJS = 'window.__CF_DATA__=' + JSON.stringify(data).replace(/</g,'\\u003c') + ';';
+
+  var jsf = '';
+  if(mode === 'jsfuck'){
+    jsf = '<script>' + encodeJSFuck('window.__CF_UNLOCK()') + '<\/script>';
+  }
+
+  return '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>protected · cipher forge</title>\n<style>' + GEN_STYLE + '</style>\n</head>\n<body>\n<div class="wrap" id="app">\n  <span class="badge">CIPHER FORGE · PROTECTED BUILD</span>\n  <h1>受保护的业务载荷</h1>\n  <p>本页由 single-file protector 生成：名称池派生密钥 → WASM 私有 VM 执行字节码 → 双向锁通过后，业务载荷才被解密并实例化。</p>\n  <div class="panel"><div id="stage">initializing…</div><pre id="log"></pre></div>\n</div>\n<script>\n' + dataJS + '\n<\/script>\n<script>\n' + GEN_RUNTIME + '\n<\/script>\n' + jsf + '\n</body>\n</html>';
+}
+
+/* ============================================================
+   12. tool wiring
+   ============================================================ */
+var lastHTML = '';
+var lastMode = 'protect';
+
+function updateCounts(){
+  var v = $('#codeInput').value;
+  $('#inMeta').textContent = v.length + ' chars';
+}
+function generate(mode){
+  var code = $('#codeInput').value;
+  if(!code.trim()){ toast('请输入代码'); return; }
+  if(mode === 'jsfuck' && code.length > 900){ toast('JSFuck 模式建议 ≤ 900 字符'); return; }
+  var t = performance.now();
+  try{
+    var html = buildHTML(code, mode);
+    lastHTML = html; lastMode = mode;
+    $('#codeOutput').value = html;
+    var kb = (html.length/1024).toFixed(1);
+    $('#outMeta').textContent = kb + ' KB · ' + (mode === 'jsfuck' ? 'jsfuck outer' : 'protected');
+    $('#genStatus').textContent = 'built in ' + (performance.now()-t).toFixed(0) + 'ms';
+    logLine('build', (mode === 'jsfuck' ? 'JSFuck 外层' : '自保护') + ' HTML 生成 · ' + kb + ' KB');
+    toast('生成完成');
+  }catch(e){
+    $('#genStatus').textContent = 'error';
+    toast(e.message || '生成失败');
+    logLine('err', String(e.message || e), 'err');
+  }
+}
+
+/* ============================================================
+   13. init
+   ============================================================ */
+function wire(){
+  $('#btnUnlock').addEventListener('click', unlock);
+  $('#btnReset').addEventListener('click', function(){ location.reload(); });
+  $('#btnGen').addEventListener('click', function(){ generate('protect'); });
+  $('#btnFuck').addEventListener('click', function(){ generate('jsfuck'); });
+  $('#btnCopy').addEventListener('click', async function(){
+    if(!lastHTML){ toast('先生成'); return; }
+    try{ await navigator.clipboard.writeText(lastHTML); toast('已复制'); }
+    catch(e){ $('#codeOutput').select(); document.execCommand('copy'); toast('已复制'); }
+  });
+  $('#btnDownload').addEventListener('click', function(){
+    if(!lastHTML){ toast('先生成'); return; }
+    var blob = new Blob([lastHTML], {type:'text/html;charset=utf-8'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = lastMode === 'jsfuck' ? 'cipherforge-jsfuck.html' : 'cipherforge-protected.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1200);
+  });
+  $('#btnPreview').addEventListener('click', function(){
+    if(!lastHTML){ toast('先生成'); return; }
+    var blob = new Blob([lastHTML], {type:'text/html;charset=utf-8'});
+    window.open(URL.createObjectURL(blob), '_blank');
+  });
+  $('#codeInput').addEventListener('input', updateCounts);
+  updateCounts();
+}
+
+wire();
+boot().catch(function(e){
+  logLine('err','启动失败: ' + (e && e.message ? e.message : e), 'err');
+  $('#navState').querySelector('span').textContent = 'FAILED';
+});
+})();
+</script>
+</body>
+</html>
