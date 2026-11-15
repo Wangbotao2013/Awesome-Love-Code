@@ -304,6 +304,10 @@ console.log('business payload executed after handshake');</textarea>
       <b>诱饵层（BLA）</b>
       <p>页面内确实存在假端点、假密钥、自洽但错误的 shadow 调用链。它们不参与真实路径，只消耗分析预算。</p>
     </div>
+    <div class="note">
+      <b>有效期</b>
+      <p>种子、盐、置换顺序、载荷密钥全部在构建时随机生成并写死。保护只对<strong>当前产物</strong>有效：重新生成即全部作废。<b>每换一版就重跑一次构建</b>，长期不换版，保护强度只会衰减。</p>
+    </div>
   </section>
 
   <footer>
@@ -322,7 +326,7 @@ console.log('business payload executed after handshake');</textarea>
    ============================================================ */
 var WASM_B64 = 'AGFzbQEAAAABIgZgAAF/YAJ/fwBgAn9/AX9gAX8Bf2ABfwBgBX9/f39/AX8DCAcAAQIDAQQFBQMBAAIGBgF/AUEBCwcbBANtZW0CAAR3aXBlAAEEaW5pdAAFA3J1bgAGCqoJBywBAX8jACEAIAAgAEENdHMhACAAIABBEXZzIQAgACAAQQV0cyEAIAAkACAACygBAX9BACECAkADQCACIAFPDQEgACACakEAOgAAIAJBAWohAgwACwsLEAAgAEEIdCABckEQdEEQdQsPAEHI3AMgAEECdGooAgALEQBByNwDIABBAnRqIAE2AgALrwEBA38gAEH1863pBiAAQQBHGyQAQQAhAQJAA0AgAUEQTw0BQYAEIAFqIAE6AAAgAUEBaiEBDAALC0EPIQECQANAIAFFDQEQACABQQFqcCECQYAEIAFqLQAAIQNBgAQgAWpBgAQgAmotAAA6AABBgAQgAmogAzoAACABQQFrIQEMAAsLQQAhAQJAA0AgAUGAAk8NASABQYAEIAFBD3FqLQAAOgAAIAFBAWohAQwACwsL7QYBD38gAkGx893xeWxBufPd8XlzIQ0gAyANayANIANrcgRAQX8PCyABQQVJBEBBfg8LIAJBufPd8XkgAkEARxshDkEAIQYCQANAIAYgAU8NASAOIA5BDXRzIQ4gDiAOQRF2cyEOIA4gDkEFdHMhDiAAIAZqIAAgBmotAAAgDkH/AXFzOgAAIAZBAWohBgwACwsgAUEEayEQQcW78oh4IRFBACEGAkADQCAGIBBPDQEgESAAIAZqLQAAc0GTg4AIbCERIAZBAWohBgwACwsgACAQai0AAEEYdCAAIBBBAWpqLQAAQRB0ciAAIBBBAmpqLQAAQQh0IAAgEEEDamotAAByciESIBEgEkcEQCAAIAEQAUF9DwtByNwDQcAAEAFBACEFQQAhD0EAIRMCQANAIBNBAEcNASAFIBBPDQEgACAFai0AACEHIActAAAhCCAAIAVBAWpqLQAAIQkgACAFQQJqai0AACEKIAAgBUEDamotAAAhCyAIQQBGBEAgBUEEaiEFDAELIAhBAUYEQCAJIApBCHQgC3IQBCAFQQRqIQUMAQsgCEECRgRAIAkgChADEAQgBUEEaiEFDAELIAhBA0YEQCAJIAoQAyALEANqEAQgBUEEaiEFDAELIAhBBEYEQCAJIAoQAyALEANrEAQgBUEEaiEFDAELIAhBBUYEQCAJIAoQAyALEANzEAQgBUEEaiEFDAELIAhBBkYEQCAJIAoQAyALEANxEAQgBUEEaiEFDAELIAhBB0YEQCAJIAoQAyALEANBH3F0EAQgBUEEaiEFDAELIAhBCEYEQCAJIAoQAyALEANBH3F2EAQgBUEEaiEFDAELIAhBCUYEQCAJIAoQAyALEANsEAQgBUEEaiEFDAELIAhBCkYEQCAFQQRqIAogCxACaiEFDAELIAhBC0YEQCAFQQRqIAogCxACaiEMIAwgBUEEaiAJEANFGyEFDAELIAhBDEYEQCAFQQRqIAogCxACaiEMIAwgBUEEaiAJEANBAEcbIQUMAQsgCEENRgRAIAQgD2ogCRADQf8BcToAACAPQQFqIQ8gBUEEaiEFDAELIAhBDkYEQCAJIAkQAyAKEANBldPH3gVqcxAEIAVBBGohBQwBCyAIQQ9GBEBBASETDAILQQEhEwsLIAAgARABQcjcA0HAABABIA8L';
 /* crypto core: kdf / token / open, compiled from C to wasm32 (no JS key schedule) */
-var CRYPTO_WASM_B64 = 'AGFzbQEAAAABDQJgAX8Bf2ADf39/AX8DBAMAAAEEBQFwAQEBBQUBARCACAYIAX8BQZCIBAsHHwQGbWVtb3J5AgADa2RmAAAFdG9rZW4AAQRvcGVuAAIKowYDrAMBBH8jgICAgABBgCBrIgEkgICAgAAgAC0AAEHFu/KIeHNBk4OACGwgAC0AAXNBk4OACGwgAC0AAnNBk4OACGwgAC0AA3NBk4OACGwgAC0ABHNBk4OACGwgAC0ABXNBk4OACGwgAC0ABnNBk4OACGwgAC0AB3NBk4OACGwgAC0ACHNBk4OACGwgAC0ACXNBk4OACGwgAC0ACnNBk4OACGwgAC0AC3NBk4OACGwgAC0ADHNBk4OACGwgAC0ADXNBk4OACGwgAC0ADnNBk4OACGwgAC0AD3NBk4OACGwiAkG5893xeXNB9fOt6QZqIQBBACEDA0AgASADaiAAQQ92IABzIABBAXJsIgRBB3YgBHMgBEE9cmwgBGogBHMiBEEOdiAEczYCACAAQfXzrekGaiEAIANBBGoiA0GAIEcNAAtBAEEBOgCEiICAAEEAIAEgAkEGdkH8B3FqQYAIaigCACABIAJB/wFxQQJ0aigCAHMgASACQQ52QfwHcWpBgBBqKAIAcyABIAJBFnZB/AdxakGAGGooAgBzNgKAiICAACABQYAgaiSAgICAAEEBC0MBAX9BACEBAkBBAC0AhIiAgABFDQAgAEEAKAKAiICAACIBQQ10IAFzIgFBEXYgAXMiAUEFdCABczYAAEEEIQELIAELrgIBBn9BfyEDAkAgAUEJSA0AQQAtAISIgIAAQQFxRQ0AQbnz3fF5IAAtAABBxbvyiHhzQZODgAhsIAAtAAFzQZODgAhsIAAtAAJzQZODgAhsIAAtAANzQZODgAhsIAAtAARzQZODgAhsIAAtAAVzQZODgAhsIAAtAAZzQZODgAhsIAAtAAdzQZODgAhsIgNBACgCgIiAgAAiBHMgBCADRhshBUEIIQYDQCAGIgRBgAJqIgYgASAGIAFIIgcbIQggBCEDA0AgAiADakF4aiAAIANqLQAAIAVBDXQgBXMiBUERdiAFcyIFQQV0IAVzIgVzOgAAIANBAWoiAyAISA0ACwNAIAAgBGpBADoAACAEQQFqIgQgCEgNAAsgBw0ACyAAQgA3AAAgAUF4aiEDCyADCwA4BG5hbWUABwZjLndhc20BFAMAA2tkZgEFdG9rZW4CBW9wZW5wBxIBAA9fX3N0YWNrX3BvaW50ZXIAfwlwcm9kdWNlcnMBDHByb2Nlc3NlZC1ieQEFY2xhbmdfMTcuMC4wIChodHRwczovL2dpdGh1Yi5jb20vc3dpZnRsYW5nL2xsdm0tcHJvamVjdC5naXQgOGYwZDJjYTkyNGRiMzdjOGY4MTYxZDU1YzIxYjkwOTdiMDViNzJmMykASQ90YXJnZXRfZmVhdHVyZXMEKwptdWx0aXZhbHVlKw9tdXRhYmxlLWdsb2JhbHMrD3JlZmVyZW5jZS10eXBlcysIc2lnbi1leHQ=';
+var CRYPTO_WASM_B64 = 'AGFzbQEAAAABFQNgAX8Bf2ADf39/AX9gBH9/f38BfwMFBAAAAQIEBQFwAQEBBQUBARCACAYIAX8BQaCIBAsHJwUGbWVtb3J5AgADa2RmAAAFdG9rZW4AAQViZWdpbgACBHN0ZXAAAwqSCAS2AwEEfyOAgICAAEGAIGsiASSAgICAACAALQAAQcW78oh4c0GTg4AIbCAALQABc0GTg4AIbCAALQACc0GTg4AIbCAALQADc0GTg4AIbCAALQAEc0GTg4AIbCAALQAFc0GTg4AIbCAALQAGc0GTg4AIbCAALQAHc0GTg4AIbCAALQAIc0GTg4AIbCAALQAJc0GTg4AIbCAALQAKc0GTg4AIbCAALQALc0GTg4AIbCAALQAMc0GTg4AIbCAALQANc0GTg4AIbCAALQAOc0GTg4AIbCAALQAPc0GTg4AIbCICQbnz3fF5c0H1863pBmohAEEAIQMDQCABIANqIABBD3YgAHMgAEEBcmwiBEEHdiAEcyAEQT1ybCAEaiAEcyIEQQ52IARzNgIAQQAoAoCIgIAAGiAAQfXzrekGaiEAIANBBGoiA0GAIEcNAAtBAEEBOgCIiICAAEEAIAEgAkEGdkH8B3FqQYAIaigCACABIAJB/wFxQQJ0aigCAHMgASACQQ52QfwHcWpBgBBqKAIAcyABIAJBFnZB/AdxakGAGGooAgBzNgKEiICAACABQYAgaiSAgICAAEEBC0MBAX9BACEBAkBBAC0AiIiAgABFDQAgAEEAKAKEiICAACIBQQ10IAFzIgFBEXYgAXMiAUEFdCABczYAAEEEIQELIAEL4AEBAX9BACEDAkAgAUENSA0AQQAtAIiIgIAAQQFxRQ0AQQBBufPd8XkgAC0AAEHFu/KIeHNBk4OACGwgAC0AAXNBk4OACGwgAC0AAnNBk4OACGwgAC0AA3NBk4OACGwgAC0ABHNBk4OACGwgAC0ABXNBk4OACGwgAC0ABnNBk4OACGwgAC0AB3NBk4OACGwiA0EAKAKEiICAAEG17MDfBUEAIAIbcyICcyACIANGGzYCjIiAgAAgAEEANgAAIABBADYABEEAQQg2ApCIgIAAQQAgATYClIiAgABBASEDCyADC7ECAQR/QX8hBAJAQQAtAIiIgIAARQ0AIANBAUgNAEEAKAKQiICAACIFQQAoApSIgIAAIgZODQBBACEEQbnz3fF5QQAoAoyIgIAAIgcgAnMgByACRhshAiAFIANqIgMgBiADIAZIGyEDIAAgBWohBgNAIAEgBGogBiAEai0AACACQQ10IAJzIgJBEXYgAnMiAkEFdCACcyICczoAACAFIARBAWoiBGogA0gNAAtBACACNgKMiICAAAJAIAUgA04NACAFIQICQCADIAVrQQdxIgFFDQAgBSECA0AgACACakEAOgAAIAJBAWohAiABQX9qIgENAAsLIAUgA2tBeEsNACADIQUDQCAAIAJqQgA3AAAgAEEIaiEAIAIgBUF4aiIFRw0ACwtBACADNgKQiICAAAsgBAsAPwRuYW1lAAgHYzMud2FzbQEaBAADa2RmAQV0b2tlbgIFYmVnaW4DBHN0ZXAHEgEAD19fc3RhY2tfcG9pbnRlcgB/CXByb2R1Y2VycwEMcHJvY2Vzc2VkLWJ5AQVjbGFuZ18xNy4wLjAgKGh0dHBzOi8vZ2l0aHViLmNvbS9zd2lmdGxhbmcvbGx2bS1wcm9qZWN0LmdpdCA4ZjBkMmNhOTI0ZGIzN2M4ZjgxNjFkNTVjMjFiOTA5N2IwNWI3MmYzKQBJD3RhcmdldF9mZWF0dXJlcwQrCm11bHRpdmFsdWUrD211dGFibGUtZ2xvYmFscysPcmVmZXJlbmNlLXR5cGVzKwhzaWduLWV4dA==';
 var $ = function(s, r){ return (r||document).querySelector(s); };
 var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
 
@@ -921,35 +925,67 @@ var HTML_RUNTIME = [
 "'use strict';",
 "function q(h){var o='',i;for(i=0;i<h.length;i+=2)o+=String.fromCharCode(parseInt(h.substr(i,2),16)^90);return o;}",
 "function b64d(s){return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0);});}",
-"var SH=131072,TK=131088,IN=131104,ex=null,ok=false,err='',Q=[],st=0;",
+"var DBG=/[?&]cfdebug=1/.test((typeof location!=='undefined'&&location.search)||'');",
+"var SH=131072,TK=131088,IN=131104,ex=null,ok=false,err='',Q=[],st=0,fake=-1;",
+"function fail(m){if(!DBG)return;try{console.error('[cipher-forge] '+m);var d=document.createElement('div');d.textContent='cipher-forge: '+m;d.style.cssText='position:fixed;left:12px;bottom:12px;z-index:2147483647;padding:8px 12px;border-radius:8px;background:#1b2431;color:#ffb4b4;font:12px/1.4 ui-monospace,monospace;box-shadow:0 8px 24px #0008';(document.body||document.documentElement).appendChild(d);}catch(e){}}",
 "function grow(n){var b=ex.memory.buffer.byteLength;if(b<n)ex.memory.grow(Math.ceil((n-b)/65536));}",
+"function wasmBytes(){var s='',i;for(i=0;i<D.w.o.length;i++)s+=q(D.w.d[D.w.o[i]]);return b64d(s);}",
+"function isFake(){",
+"  var s=0;",
+"  try{",
+"    if(typeof process==='object'&&process&&process.versions&&process.versions.node)s+=2;",
+"    if(typeof navigator!=='undefined'&&navigator&&navigator.webdriver)s+=3;",
+"    if(document.body){",
+"      var d=document.createElement('div');",
+"      d.style.cssText='position:absolute;left:-9999px;top:-9999px;width:41px;height:29px';",
+"      document.body.appendChild(d);",
+"      var r=d.getBoundingClientRect?d.getBoundingClientRect():null;",
+"      if(!r||r.width<1||r.height<1)s+=3;",
+"      if(d.parentNode)d.parentNode.removeChild(d);",
+"    }",
+"    try{throw new Error('x');}catch(e){var k=(e&&e.stack)||'';if(/puppeteer|playwright|webdriver|jsdom|headless/i.test(k))s+=2;}",
+"  }catch(e){s+=3;}",
+"  return s>=3?1:0;",
+"}",
 "function setup(){",
 "  var dv=new DataView(ex.memory.buffer),i;",
 "  for(i=0;i<4;i++)dv.setUint32(SH+i*4,D.s[i]>>>0,true);",
-"  if(!ex.kdf(SH))throw new Error(q('2d3b29377a3334332e7a3c3b33363f3e'));",
+"  if(!ex.kdf(SH))throw new Error('kdf');",
 "  var tk=new Uint8Array(ex.memory.buffer,TK,4);ex.token(TK);",
-"  for(i=0;i<4;i++)if(tk[i]!==D.t[i])throw new Error(q('2e35313f347a373329373b2e3932'));",
+"  for(i=0;i<4;i++)if(tk[i]!==D.t[i])throw new Error('token');",
 "  ok=true;",
 "}",
 "function run(i){",
-"  if(!ok){console.warn(q('0139332a323f28773c35283d3f077a323b343e29323b313f7a3c3b33363f3e607a')+err);return;}",
+"  if(!ok){fail('boot '+err);return;}",
 "  try{",
-"    var blob=b64d(D.p[i]),len=blob.length,need=IN+len+len+16;",
+"    if(fake<0)fake=isFake();",
+"    var blob=b64d((fake?D.x:D.p)[i]),len=blob.length,need=IN+len+len+16;",
 "    grow(need);",
 "    var buf=new Uint8Array(ex.memory.buffer);buf.set(blob,IN);",
-"    var out=IN+len,n=ex.open(IN,len,out);",
-"    if(n<4)throw new Error(q('383b3e7a2a3b2336353b3e'));",
-"    if((buf[out]^67)|(buf[out+1]^70)|(buf[out+2]^88)|(buf[out+3]^49))throw new Error(q('383b3e7a373b3d3339'));",
-"    var src=new TextDecoder().decode(buf.subarray(out+4,out+n));",
-"    buf.fill(0,out,out+n);blob=null;",
+"    var out=IN+len;",
+"    if(!ex.begin(IN,len,fake))throw new Error('begin');",
+"    var off=0,feed=0,n,CH=D.h,j;",
+"    while((n=ex.step(IN,out+off,feed,CH))>0){",
+"      var f=0x811c9dc5>>>0;",
+"      for(j=0;j<n;j++)f=Math.imul(f^buf[out+off+j],16777619)>>>0;",
+"      feed=f;off+=n;",
+"      if(off>len+64)throw new Error('overrun');",
+"    }",
+"    if(off<8)throw new Error('short');",
+"    for(j=0;j<4;j++)if(buf[out+j]!==D.m[j])throw new Error('magic');",
+"    var hl=(buf[out+off-4]|(buf[out+off-3]<<8)|(buf[out+off-2]<<16)|(buf[out+off-1]<<24))>>>0;",
+"    var hh=0x811c9dc5>>>0,sl=off-8;",
+"    for(j=0;j<sl;j++)hh=Math.imul(hh^buf[out+4+j],16777619)>>>0;",
+"    if(hl!==hh)throw new Error('integrity');",
+"    var src=new TextDecoder().decode(buf.subarray(out+4,out+4+sl));",
+"    buf.fill(0,out,out+off);blob=null;",
 "    var el=document.createElement('script');el.textContent=src;",
 "    (document.head||document.documentElement).appendChild(el);",
 "    if(el.parentNode)el.parentNode.removeChild(el);",
 "    src=null;el=null;",
-"  }catch(e){console.error(q('2a3b2336353b3e7a')+i+q('607a')+(e&&e.message?e.message:e));}",
+"  }catch(e){fail('payload '+i+': '+((e&&e.message)||e));}",
 "}",
 "function flush(){var a=Q;Q=[];for(var j=0;j<a.length;j++)run(a[j]);}",
-"function fail(m){try{var d=document.createElement('div');d.textContent='cipher-forge: '+m;d.style.cssText='position:fixed;left:12px;bottom:12px;z-index:2147483647;padding:8px 12px;border-radius:8px;background:#1b2431;color:#ffb4b4;font:12px/1.4 ui-monospace,monospace;box-shadow:0 8px 24px #0008';(document.body||document.documentElement).appendChild(d);}catch(e){}}",
 "window.__CFX=function(i){if(ok)run(i);else Q.push(i);};",
 "while(st!==-1){",
 "  switch(st){",
@@ -957,7 +993,7 @@ var HTML_RUNTIME = [
 "      try{setup();}catch(e){err=(e&&e.message)||String(e);}",
 "      st=3;break;",
 "    case 0:",
-"      try{ex=new WebAssembly.Instance(new WebAssembly.Module(b64d(D.c)),{}).exports;st=2;}",
+"      try{ex=new WebAssembly.Instance(new WebAssembly.Module(wasmBytes()),{}).exports;st=2;}",
 "      catch(e){err=(e&&e.message)||String(e);st=3;}",
 "      break;",
 "    case 3:",
@@ -980,6 +1016,107 @@ function fnvBytes(u8){
   var h = 0x811c9dc5 >>> 0;
   for(var i=0;i<u8.length;i++) h = Math.imul(h ^ u8[i], 16777619) >>> 0;
   return h >>> 0;
+}
+function randInt(n){
+  var a = new Uint32Array(1); crypto.getRandomValues(a);
+  return a[0] % n;
+}
+function shuffle(a){
+  for(var i=a.length-1;i>0;i--){ var j=randInt(i+1), t=a[i]; a[i]=a[j]; a[j]=t; }
+  return a;
+}
+function hexXor(s, k){
+  var o = '';
+  for(var i=0;i<s.length;i++) o += ('0' + (s.charCodeAt(i) ^ k).toString(16)).slice(-2);
+  return o;
+}
+function shardWasm(b64){
+  var n = 4, size = Math.ceil(b64.length / n), parts = [], i;
+  for(i=0;i<n;i++) parts.push(hexXor(b64.slice(i*size, (i+1)*size), 90));
+  var pos = []; for(i=0;i<n;i++) pos.push(i);
+  shuffle(pos);
+  var inv = [], d = [];
+  for(i=0;i<n;i++) inv[pos[i]] = i;
+  for(i=0;i<n;i++) d.push(parts[pos[i]]);
+  return { d:d, o:inv };
+}
+/* 与 wasm 的 begin/step 链严格对应：每块解密前先混入上一块明文的 FNV。 */
+function sealPayload(src, key, chunk, magic){
+  var raw = utf8e(src);
+  var body = new Uint8Array(4 + raw.length + 4);
+  body.set(magic, 0); body.set(raw, 4);
+  var hv = fnvBytes(raw);
+  body[4+raw.length] = hv & 255;
+  body[5+raw.length] = (hv >>> 8) & 255;
+  body[6+raw.length] = (hv >>> 16) & 255;
+  body[7+raw.length] = (hv >>> 24) & 255;
+  var nz = new Uint8Array(8);
+  crypto.getRandomValues(nz);
+  var ct = new Uint8Array(body.length);
+  var st = ((key ^ fnvBytes(nz)) >>> 0) || 0x9e3779b9;
+  var feed = 0;
+  for(var base=0; base<body.length; base+=chunk){
+    var end = Math.min(base + chunk, body.length);
+    st = (st ^ feed) >>> 0;
+    if(!st) st = 0x9e3779b9;
+    for(var i=base;i<end;i++){
+      st = (st ^ (st << 13)) | 0;
+      st = (st ^ (st >>> 17)) | 0;
+      st = (st ^ (st << 5)) | 0;
+      ct[i] = body[i] ^ (st & 255);
+    }
+    var f = 0x811c9dc5 >>> 0;
+    for(var j=base;j<end;j++) f = Math.imul(f ^ body[j], 16777619) >>> 0;
+    feed = f;
+  }
+  var blob = new Uint8Array(8 + ct.length);
+  blob.set(nz, 0); blob.set(ct, 8);
+  return b64e(blob);
+}
+/* 诱饵：跳过字符串/注释/正则，只把十进制整数字面量 +1，页面照常运行但结果不对。 */
+function makeDecoy(src){
+  var out = '', i = 0, n = src.length, prev = '';
+  while(i < n){
+    var c = src[i];
+    if(c === '"' || c === "'" || c === '`'){
+      var qq = c; out += c; i++;
+      while(i < n){
+        var d = src[i]; out += d;
+        if(d === '\\'){ i++; if(i < n){ out += src[i]; i++; } continue; }
+        i++; if(d === qq) break;
+      }
+      prev = 'x'; continue;
+    }
+    if(c === '/' && src[i+1] === '/'){ while(i < n && src[i] !== '\n') out += src[i++]; continue; }
+    if(c === '/' && src[i+1] === '*'){
+      out += '/*'; i += 2;
+      while(i < n && !(src[i] === '*' && src[i+1] === '/')) out += src[i++];
+      if(i < n){ out += '*/'; i += 2; }
+      continue;
+    }
+    if(c === '/' && /[=(,:;!&|?{}\n\t ]/.test(prev)){
+      out += '/'; i++;
+      var cls = false;
+      while(i < n){
+        var e = src[i]; out += e;
+        if(e === '\\'){ i++; if(i < n){ out += src[i]; i++; } continue; }
+        if(e === '[') cls = true; else if(e === ']') cls = false;
+        else if(e === '/' && !cls){ i++; break; }
+        i++;
+      }
+      prev = 'x'; continue;
+    }
+    if(c >= '0' && c <= '9'){
+      var j = i;
+      while(j < n && /[0-9a-fA-FxX._]/.test(src[j])) j++;
+      var lit = src.slice(i, j);
+      out += /^\d+$/.test(lit) ? String((Number(lit) + 1) % 100000) : lit;
+      i = j; prev = '0'; continue;
+    }
+    out += c; i++;
+    if(c !== ' ' && c !== '\t' && c !== '\n' && c !== '\r') prev = c;
+  }
+  return out || ';';
 }
 
 function protectHTML(html){
@@ -1006,20 +1143,23 @@ function protectHTML(html){
   var seed = fnvShares(sh);
   var T = buildTables(seed);
   var key = whiteboxKey(T, seed);
-  var magic = [0x43, 0x46, 0x58, 0x31];
-  var p = scripts.map(function(src){
-    var nz = new Uint8Array(8);
-    crypto.getRandomValues(nz);
-    var raw = utf8e(src);
-    var body = new Uint8Array(4 + raw.length);
-    body.set(magic, 0); body.set(raw, 4);
-    var ct = crypt(body, (key ^ fnvBytes(nz)) >>> 0);
-    var blob = new Uint8Array(8 + ct.length);
-    blob.set(nz, 0); blob.set(ct, 8);
-    return b64e(blob);
-  });
+  var altKey = (key ^ 0x5bf03635) >>> 0;
+  var magic = new Uint8Array(4);
+  crypto.getRandomValues(magic);
+  var mArr = Array.prototype.slice.call(magic);
+  var CH = [128, 192, 256][randInt(3)];
+  var p = scripts.map(function(src){ return sealPayload(src, key, CH, mArr); });
+  var x = scripts.map(function(src){ return sealPayload(makeDecoy(src), altKey, CH, mArr); });
 
-  var dataLit = JSON.stringify({ c:CRYPTO_WASM_B64, s:Array.prototype.slice.call(sh), t:tokenOf(key), p:p }).replace(/</g,'\\u003c');
+  var dataLit = JSON.stringify({
+    w: shardWasm(CRYPTO_WASM_B64),
+    s: Array.prototype.slice.call(sh),
+    t: tokenOf(key),
+    h: CH,
+    m: mArr,
+    p: p,
+    x: x
+  }).replace(/</g,'\\u003c');
   var inject = '<script>' + HTML_RUNTIME + '(' + dataLit + ');<\/script>\n';
 
   out = out.slice(0, firstOffset) + inject + out.slice(firstOffset);
