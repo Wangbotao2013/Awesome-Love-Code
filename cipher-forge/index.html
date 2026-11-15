@@ -321,6 +321,8 @@ console.log('business payload executed after handshake');</textarea>
    0. primitives
    ============================================================ */
 var WASM_B64 = 'AGFzbQEAAAABIgZgAAF/YAJ/fwBgAn9/AX9gAX8Bf2ABfwBgBX9/f39/AX8DCAcAAQIDAQQFBQMBAAIGBgF/AUEBCwcbBANtZW0CAAR3aXBlAAEEaW5pdAAFA3J1bgAGCqoJBywBAX8jACEAIAAgAEENdHMhACAAIABBEXZzIQAgACAAQQV0cyEAIAAkACAACygBAX9BACECAkADQCACIAFPDQEgACACakEAOgAAIAJBAWohAgwACwsLEAAgAEEIdCABckEQdEEQdQsPAEHI3AMgAEECdGooAgALEQBByNwDIABBAnRqIAE2AgALrwEBA38gAEH1863pBiAAQQBHGyQAQQAhAQJAA0AgAUEQTw0BQYAEIAFqIAE6AAAgAUEBaiEBDAALC0EPIQECQANAIAFFDQEQACABQQFqcCECQYAEIAFqLQAAIQNBgAQgAWpBgAQgAmotAAA6AABBgAQgAmogAzoAACABQQFrIQEMAAsLQQAhAQJAA0AgAUGAAk8NASABQYAEIAFBD3FqLQAAOgAAIAFBAWohAQwACwsL7QYBD38gAkGx893xeWxBufPd8XlzIQ0gAyANayANIANrcgRAQX8PCyABQQVJBEBBfg8LIAJBufPd8XkgAkEARxshDkEAIQYCQANAIAYgAU8NASAOIA5BDXRzIQ4gDiAOQRF2cyEOIA4gDkEFdHMhDiAAIAZqIAAgBmotAAAgDkH/AXFzOgAAIAZBAWohBgwACwsgAUEEayEQQcW78oh4IRFBACEGAkADQCAGIBBPDQEgESAAIAZqLQAAc0GTg4AIbCERIAZBAWohBgwACwsgACAQai0AAEEYdCAAIBBBAWpqLQAAQRB0ciAAIBBBAmpqLQAAQQh0IAAgEEEDamotAAByciESIBEgEkcEQCAAIAEQAUF9DwtByNwDQcAAEAFBACEFQQAhD0EAIRMCQANAIBNBAEcNASAFIBBPDQEgACAFai0AACEHIActAAAhCCAAIAVBAWpqLQAAIQkgACAFQQJqai0AACEKIAAgBUEDamotAAAhCyAIQQBGBEAgBUEEaiEFDAELIAhBAUYEQCAJIApBCHQgC3IQBCAFQQRqIQUMAQsgCEECRgRAIAkgChADEAQgBUEEaiEFDAELIAhBA0YEQCAJIAoQAyALEANqEAQgBUEEaiEFDAELIAhBBEYEQCAJIAoQAyALEANrEAQgBUEEaiEFDAELIAhBBUYEQCAJIAoQAyALEANzEAQgBUEEaiEFDAELIAhBBkYEQCAJIAoQAyALEANxEAQgBUEEaiEFDAELIAhBB0YEQCAJIAoQAyALEANBH3F0EAQgBUEEaiEFDAELIAhBCEYEQCAJIAoQAyALEANBH3F2EAQgBUEEaiEFDAELIAhBCUYEQCAJIAoQAyALEANsEAQgBUEEaiEFDAELIAhBCkYEQCAFQQRqIAogCxACaiEFDAELIAhBC0YEQCAFQQRqIAogCxACaiEMIAwgBUEEaiAJEANFGyEFDAELIAhBDEYEQCAFQQRqIAogCxACaiEMIAwgBUEEaiAJEANBAEcbIQUMAQsgCEENRgRAIAQgD2ogCRADQf8BcToAACAPQQFqIQ8gBUEEaiEFDAELIAhBDkYEQCAJIAkQAyAKEANBldPH3gVqcxAEIAVBBGohBQwBCyAIQQ9GBEBBASETDAILQQEhEwsLIAAgARABQcjcA0HAABABIA8L';
+/* crypto core: kdf / token / open, compiled from C to wasm32 (no JS key schedule) */
+var CRYPTO_WASM_B64 = 'AGFzbQEAAAABDQJgAX8Bf2ADf39/AX8DBAMAAAEEBQFwAQEBBQUBARCACAYIAX8BQZCIBAsHHwQGbWVtb3J5AgADa2RmAAAFdG9rZW4AAQRvcGVuAAIKowYDrAMBBH8jgICAgABBgCBrIgEkgICAgAAgAC0AAEHFu/KIeHNBk4OACGwgAC0AAXNBk4OACGwgAC0AAnNBk4OACGwgAC0AA3NBk4OACGwgAC0ABHNBk4OACGwgAC0ABXNBk4OACGwgAC0ABnNBk4OACGwgAC0AB3NBk4OACGwgAC0ACHNBk4OACGwgAC0ACXNBk4OACGwgAC0ACnNBk4OACGwgAC0AC3NBk4OACGwgAC0ADHNBk4OACGwgAC0ADXNBk4OACGwgAC0ADnNBk4OACGwgAC0AD3NBk4OACGwiAkG5893xeXNB9fOt6QZqIQBBACEDA0AgASADaiAAQQ92IABzIABBAXJsIgRBB3YgBHMgBEE9cmwgBGogBHMiBEEOdiAEczYCACAAQfXzrekGaiEAIANBBGoiA0GAIEcNAAtBAEEBOgCEiICAAEEAIAEgAkEGdkH8B3FqQYAIaigCACABIAJB/wFxQQJ0aigCAHMgASACQQ52QfwHcWpBgBBqKAIAcyABIAJBFnZB/AdxakGAGGooAgBzNgKAiICAACABQYAgaiSAgICAAEEBC0MBAX9BACEBAkBBAC0AhIiAgABFDQAgAEEAKAKAiICAACIBQQ10IAFzIgFBEXYgAXMiAUEFdCABczYAAEEEIQELIAELrgIBBn9BfyEDAkAgAUEJSA0AQQAtAISIgIAAQQFxRQ0AQbnz3fF5IAAtAABBxbvyiHhzQZODgAhsIAAtAAFzQZODgAhsIAAtAAJzQZODgAhsIAAtAANzQZODgAhsIAAtAARzQZODgAhsIAAtAAVzQZODgAhsIAAtAAZzQZODgAhsIAAtAAdzQZODgAhsIgNBACgCgIiAgAAiBHMgBCADRhshBUEIIQYDQCAGIgRBgAJqIgYgASAGIAFIIgcbIQggBCEDA0AgAiADakF4aiAAIANqLQAAIAVBDXQgBXMiBUERdiAFcyIFQQV0IAVzIgVzOgAAIANBAWoiAyAISA0ACwNAIAAgBGpBADoAACAEQQFqIgQgCEgNAAsgBw0ACyAAQgA3AAAgAUF4aiEDCyADCwA4BG5hbWUABwZjLndhc20BFAMAA2tkZgEFdG9rZW4CBW9wZW5wBxIBAA9fX3N0YWNrX3BvaW50ZXIAfwlwcm9kdWNlcnMBDHByb2Nlc3NlZC1ieQEFY2xhbmdfMTcuMC4wIChodHRwczovL2dpdGh1Yi5jb20vc3dpZnRsYW5nL2xsdm0tcHJvamVjdC5naXQgOGYwZDJjYTkyNGRiMzdjOGY4MTYxZDU1YzIxYjkwOTdiMDViNzJmMykASQ90YXJnZXRfZmVhdHVyZXMEKwptdWx0aXZhbHVlKw9tdXRhYmxlLWdsb2JhbHMrD3JlZmVyZW5jZS10eXBlcysIc2lnbi1leHQ=';
 var $ = function(s, r){ return (r||document).querySelector(s); };
 var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
 
@@ -916,61 +918,56 @@ var GEN_RUNTIME = [
    n 号载荷在页面解析到该位置时同步解密并执行（保持原有执行顺序）。 */
 var HTML_RUNTIME = [
 "(function(D){",
-"  'use strict';",
-"  function fnvB(u8){var h=0x811c9dc5>>>0;for(var i=0;i<u8.length;i++)h=Math.imul(h^u8[i],16777619)>>>0;return h>>>0;}",
-"  function fnvSh(a){var h=0x811c9dc5>>>0;for(var i=0;i<a.length;i++){var v=a[i]>>>0;for(var j=0;j<4;j++){h=Math.imul(h^((v>>>(j*8))&255),16777619)>>>0;}}return h>>>0;}",
-"  function nat(f){try{return /\\{\\s*\\[native code\\]\\s*\\}/.test(Function.prototype.toString.call(f));}catch(e){return false;}}",
-"  function guarded(){return nat(Function.prototype.toString)&&nat(atob)&&nat(TextDecoder)&&nat(TextDecoder.prototype.decode)&&nat(Math.imul)&&nat(WebAssembly.Module)&&nat(WebAssembly.instantiate);}",
-"  function mb(a){a>>>=0;return function(){a=(a+0x6D2B79F5)|0;var t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}",
-"  function tabs(seed){var r=mb(seed^0x9e3779b9);function mk(){var t=new Uint32Array(256);for(var i=0;i<256;i++)t[i]=(r()*4294967296)>>>0;return t;}return[mk(),mk(),mk(),mk()];}",
-"  function wb(T,s){return (T[0][s&255]^T[1][(s>>>8)&255]^T[2][(s>>>16)&255]^T[3][(s>>>24)&255])>>>0;}",
-"  function envOf(k){return ((Math.imul(k,2654435761)^0x9e3779b9)>>>0);}",
-"  function crypt(u8,k){var o=u8.slice();var st=(k>>>0)||0x9e3779b9;for(var i=0;i<o.length;i++){st=(st^(st<<13))|0;st=(st^(st>>>17))|0;st=(st^(st<<5))|0;o[i]^=(st&255);}return o;}",
-"  function tok(k){var x=k>>>0;x=(x^(x<<13))>>>0;x=(x^(x>>>17))>>>0;x=(x^(x<<5))>>>0;return[x&255,(x>>>8)&255,(x>>>16)&255,(x>>>24)&255];}",
-"  function b64d(s){return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0);});}",
-"  var OP={PUSH:1,ADD:3,SHL:7,SHR:8,XOR:5,OUT:13,HALT:15};",
-"  function asm(seed){var P=[];function p(op,a,b,c){P.push(op&255,(a||0)&255,(b||0)&255,(c||0)&255);}",
-"    p(OP.PUSH,0,(seed>>>24)&255,(seed>>>16)&255);p(OP.PUSH,2,0,16);p(OP.SHL,0,0,2);",
-"    p(OP.PUSH,1,(seed>>>8)&255,seed&255);p(OP.ADD,0,0,1);",
-"    p(OP.PUSH,1,0,13);p(OP.SHL,2,0,1);p(OP.XOR,0,0,2);",
-"    p(OP.PUSH,1,0,17);p(OP.SHR,2,0,1);p(OP.XOR,0,0,2);",
-"    p(OP.PUSH,1,0,5);p(OP.SHL,2,0,1);p(OP.XOR,0,0,2);",
-"    for(var i=0;i<4;i++){p(OP.OUT,0);if(i<3){p(OP.PUSH,1,0,8);p(OP.SHR,0,0,1);}}",
-"    p(OP.HALT);return Uint8Array.from(P);}",
-"  var key=0,ready=false,err='',q=[];",
-"  function setup(vm){",
-"    var seed=fnvSh(D.s);",
-"    var T=tabs(seed),k=wb(T,seed),env=envOf(k);",
-"    vm.init(seed);",
-"    var mem=new Uint8Array(vm.mem.buffer);",
-"    var perm=Array.prototype.slice.call(mem.slice(512,528));",
-"    var prog=asm(k);for(var i=0;i<prog.length;i+=4)prog[i]=perm.indexOf(prog[i]);",
-"    var packed=new Uint8Array(prog.length+4);packed.set(prog,0);",
-"    var sum=fnvB(prog);packed[prog.length]=(sum>>>24)&255;packed[prog.length+1]=(sum>>>16)&255;packed[prog.length+2]=(sum>>>8)&255;packed[prog.length+3]=sum&255;",
-"    var enc=crypt(packed,k);mem.set(enc,1024);",
-"    var n=vm.run(1024,enc.length,k,env,60000);",
-"    var got=n>0?Array.prototype.slice.call(mem.slice(60000,60000+n)):[];",
-"    var exp=tok(k),diff=0;for(var j=0;j<4;j++)diff|=(got[j]^exp[j])|0;",
-"    if(diff!==0)throw new Error('token mismatch');",
-"    key=k;ready=true;",
+"'use strict';",
+"function q(h){var o='',i;for(i=0;i<h.length;i+=2)o+=String.fromCharCode(parseInt(h.substr(i,2),16)^90);return o;}",
+"function b64d(s){return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0);});}",
+"function nat(f){try{return /\\{\\s*\\[native code\\]\\s*\\}/.test(Function.prototype.toString.call(f));}catch(e){return false;}}",
+"function guarded(){return nat(Function.prototype.toString)&&nat(atob)&&nat(TextDecoder)&&nat(TextDecoder.prototype.decode)&&nat(Math.imul)&&nat(WebAssembly.Module)&&nat(WebAssembly.instantiate);}",
+"var SH=131072,TK=131088,IN=131104,ex=null,ok=false,err='',Q=[],st=1;",
+"function grow(n){var b=ex.memory.buffer.byteLength;if(b<n)ex.memory.grow(Math.ceil((n-b)/65536));}",
+"function setup(){",
+"  var dv=new DataView(ex.memory.buffer),i;",
+"  for(i=0;i<4;i++)dv.setUint32(SH+i*4,D.s[i]>>>0,true);",
+"  if(!ex.kdf(SH))throw new Error(q('2d3b29377a3334332e7a3c3b33363f3e'));",
+"  var tk=new Uint8Array(ex.memory.buffer,TK,4);ex.token(TK);",
+"  for(i=0;i<4;i++)if(tk[i]!==D.t[i])throw new Error(q('2e35313f347a373329373b2e3932'));",
+"  ok=true;",
+"}",
+"function run(i){",
+"  if(!ok){console.warn(q('0139332a323f28773c35283d3f077a323b343e29323b313f7a3c3b33363f3e607a')+err);return;}",
+"  try{",
+"    var blob=b64d(D.p[i]),len=blob.length,need=IN+len+len+16;",
+"    grow(need);",
+"    var buf=new Uint8Array(ex.memory.buffer);buf.set(blob,IN);",
+"    var out=IN+len,n=ex.open(IN,len,out);",
+"    if(n<4)throw new Error(q('383b3e7a2a3b2336353b3e'));",
+"    if((buf[out]^67)|(buf[out+1]^70)|(buf[out+2]^88)|(buf[out+3]^49))throw new Error(q('383b3e7a373b3d3339'));",
+"    var src=new TextDecoder().decode(buf.subarray(out+4,out+n));",
+"    buf.fill(0,out,out+n);blob=null;",
+"    var el=document.createElement('script');el.textContent=src;",
+"    (document.head||document.documentElement).appendChild(el);",
+"    if(el.parentNode)el.parentNode.removeChild(el);",
+"    src=null;el=null;",
+"  }catch(e){console.error(q('2a3b2336353b3e7a')+i+q('607a')+(e&&e.message?e.message:e));}",
+"}",
+"function flush(){var a=Q;Q=[];for(var j=0;j<a.length;j++)run(a[j]);}",
+"window.__CFX=function(i){if(ok)run(i);else Q.push(i);};",
+"while(st!==-1){",
+"  switch(st){",
+"    case 2:",
+"      try{setup();}catch(e){err=(e&&e.message)||String(e);}",
+"      st=3;break;",
+"    case 0:",
+"      try{ex=new WebAssembly.Instance(new WebAssembly.Module(b64d(D.c)),{}).exports;st=2;}",
+"      catch(e){err=(e&&e.message)||String(e);st=3;}",
+"      break;",
+"    case 3:",
+"      flush();st=-1;break;",
+"    case 1:",
+"      if(guarded())st=0;else{err=q('323535313f3e7a282f342e33373f');st=3;}",
+"      break;",
 "  }",
-"  function run(i){",
-"    if(!ready){console.warn('[cipher-forge] handshake failed: '+err);return;}",
-"    try{",
-"      var blob=b64d(D.p[i]);",
-"      var raw=crypt(blob.slice(8),((key^fnvB(blob.slice(0,8)))>>>0));",
-"      var src=new TextDecoder().decode(raw);raw.fill(0);",
-"      var el=document.createElement('script');el.textContent=src;",
-"      (document.head||document.documentElement).appendChild(el);",
-"      if(el.parentNode)el.parentNode.removeChild(el);",
-"      src=null;el=null;",
-"    }catch(e){console.error('[cipher-forge] payload '+i+': '+(e&&e.message?e.message:e));}",
-"  }",
-"  function flush(){var a=q;q=[];for(var j=0;j<a.length;j++)run(a[j]);}",
-"  function boot(inst){if(!guarded()){err='hooked runtime';flush();return;}try{setup(inst);}catch(e){err=(e&&e.message)||String(e);}flush();}",
-"  window.__CFX=function(i){if(ready)run(i);else q.push(i);};",
-"  try{boot(new WebAssembly.Instance(new WebAssembly.Module(b64d(D.w)),{}).exports);}",
-"  catch(e){WebAssembly.instantiate(b64d(D.w),{}).then(function(m){boot(m.instance.exports);},function(x){err=(x&&x.message)||String(x);flush();});}",
+"}",
 "})"
 ].join('\n');
 
@@ -1012,16 +1009,20 @@ function protectHTML(html){
   var seed = fnvShares(sh);
   var T = buildTables(seed);
   var key = whiteboxKey(T, seed);
+  var magic = [0x43, 0x46, 0x58, 0x31];
   var p = scripts.map(function(src){
     var nz = new Uint8Array(8);
     crypto.getRandomValues(nz);
-    var ct = crypt(utf8e(src), (key ^ fnvBytes(nz)) >>> 0);
+    var raw = utf8e(src);
+    var body = new Uint8Array(4 + raw.length);
+    body.set(magic, 0); body.set(raw, 4);
+    var ct = crypt(body, (key ^ fnvBytes(nz)) >>> 0);
     var blob = new Uint8Array(8 + ct.length);
     blob.set(nz, 0); blob.set(ct, 8);
     return b64e(blob);
   });
 
-  var dataLit = JSON.stringify({ w:WASM_B64, s:Array.prototype.slice.call(sh), p:p }).replace(/</g,'\\u003c');
+  var dataLit = JSON.stringify({ c:CRYPTO_WASM_B64, s:Array.prototype.slice.call(sh), t:tokenOf(key), p:p }).replace(/</g,'\\u003c');
   var inject = '<script>' + HTML_RUNTIME + '(' + dataLit + ');<\/script>\n';
 
   out = out.slice(0, firstOffset) + inject + out.slice(firstOffset);
